@@ -1,0 +1,6 @@
+{
+  "name": "FileMarket - Digital Marketplace Blogger XML Engine",
+  "description": "Production-ready Universal E-Commerce Marketplace and Blogger XML Engine supporting digital downloads, physical product fulfillment, and 15+ multi-gateway checkout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

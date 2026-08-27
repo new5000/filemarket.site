@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>FileMarket - Redirecting...</title>
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License - https://github.com/rafgraph/spa-github-pages
+      // Converts path and query string into a query parameter and redirects to index.html
+      // If deploying to a project page (e.g., username.github.io/repo-name), set pathSegmentsToKeep = 1.
+      // If deploying to a custom domain (e.g., filemarket.site) or user page, set pathSegmentsToKeep = 0.
+      var pathSegmentsToKeep = window.location.hostname.endsWith('github.io') && window.location.pathname.split('/').length > 2 ? 1 : 0;
+
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body>
+  </body>
+</html>

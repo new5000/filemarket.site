@@ -1,0 +1,366 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with lifetime persistent credentials and delivery address",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier of the user (Firebase Auth UID)"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the registered user",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Optional Bangladesh phone or WhatsApp number",
+          "maxLength": 20
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "description": "Delivery / Physical location address in Bangladesh",
+          "minLength": 5,
+          "maxLength": 300
+        },
+        "role": {
+          "type": "string",
+          "description": "User access role (user or admin)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Account status (active or blocked)"
+        },
+        "address": {
+          "type": "string",
+          "description": "User address or location",
+          "maxLength": 300
+        },
+        "isBlocked": {
+          "type": "boolean",
+          "description": "Whether the user account is blocked by admin"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Google user photo or profile picture URL",
+          "maxLength": 1000
+        },
+        "picture": {
+          "type": "string",
+          "description": "Google user photo or profile picture URL",
+          "maxLength": 1000
+        },
+        "purchasedProducts": {
+          "type": "array",
+          "description": "Lifetime purchased digital products and license locker"
+        },
+        "recentInterests": {
+          "type": "array",
+          "description": "User recently viewed categories for interest-based recommendations"
+        },
+        "recentTags": {
+          "type": "array",
+          "description": "User recently viewed tags for semantic matching"
+        },
+        "searchHistory": {
+          "type": "array",
+          "description": "User's search terms for intent-based recommendation tracking"
+        },
+        "lastViewedProductId": {
+          "type": "string",
+          "description": "The ID of the last product viewed by the user"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of account registration"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of account last update"
+        },
+        "authProvider": {
+          "type": "string",
+          "description": "Authentication provider (password or google.com)"
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "email"
+      ]
+    },
+    "ProductItem": {
+      "title": "ProductItem",
+      "description": "Digital product catalog asset or service",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "priceBDT": {
+          "type": "number"
+        },
+        "priceUSD": {
+          "type": "number"
+        },
+        "originalPriceBDT": {
+          "type": "number"
+        },
+        "thumbnail": {
+          "type": "string"
+        },
+        "badge": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "instantDownloadLink": {
+          "type": "string"
+        },
+        "previewBlocks": {
+          "type": "array",
+          "description": "Unlimited ordered dynamic sequence of video player items and HTML/JS ad blocks"
+        },
+        "isFeatured": {
+          "type": "boolean"
+        },
+        "isBestSeller": {
+          "type": "boolean"
+        },
+        "updatedDate": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "category",
+        "priceBDT"
+      ]
+    },
+    "CustomerOrder": {
+      "title": "CustomerOrder",
+      "description": "Customer purchase transaction order",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "userPhone": {
+          "type": "string"
+        },
+        "productId": {
+          "type": "string"
+        },
+        "productTitle": {
+          "type": "string"
+        },
+        "amountBDT": {
+          "type": "number"
+        },
+        "amountUSD": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string"
+        },
+        "trxId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "userEmail",
+        "productId",
+        "paymentMethod",
+        "trxId"
+      ]
+    },
+    "GlobalConfig": {
+      "title": "GlobalConfig",
+      "description": "Unified real-time global website configuration (branding, hero sliders, categories, payment gateways, footer, notice bar)",
+      "type": "object",
+      "properties": {
+        "branding": {
+          "type": "object"
+        },
+        "heroSliders": {
+          "type": "array"
+        },
+        "categories": {
+          "type": "array"
+        },
+        "paymentGateways": {
+          "type": "object"
+        },
+        "footerAndBadges": {
+          "type": "object"
+        }
+      }
+    },
+    "ActivePresence": {
+      "title": "ActivePresence",
+      "description": "Real-time presence session document updated every 15 seconds",
+      "type": "object",
+      "properties": {
+        "lastSeen": {
+          "type": "number"
+        },
+        "url": {
+          "type": "string"
+        },
+        "userAgent": {
+          "type": "string"
+        }
+      }
+    },
+    "ActiveVisitor": {
+      "title": "ActiveVisitor",
+      "description": "Real-time presence session document updated every 30 seconds",
+      "type": "object",
+      "properties": {
+        "lastActive": {
+          "type": "number"
+        },
+        "path": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "object"
+        }
+      }
+    },
+    "AdminAccess": {
+      "title": "AdminAccess",
+      "description": "Authorized dynamic master admin email configuration for Admin Portal routing",
+      "type": "object",
+      "properties": {
+        "masterEmail": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "updatedBy": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "masterEmail"
+      ]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Store discount coupon and promotional code",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "discountType": {
+          "type": "string",
+          "enum": ["percent", "fixed"]
+        },
+        "discountValue": {
+          "type": "number"
+        },
+        "minOrderBDT": {
+          "type": "number"
+        },
+        "minOrderUSD": {
+          "type": "number"
+        },
+        "maxUses": {
+          "type": "number"
+        },
+        "usedCount": {
+          "type": "number"
+        },
+        "expiryDate": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "discountType",
+        "discountValue"
+      ]
+    }
+  },
+  "firestore": {
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Promotional discount codes and vouchers"
+    },
+    "/settings/admin_access": {
+      "schema": "AdminAccess",
+      "description": "Authorized dynamic master admin email configuration"
+    },
+    "/active_presence/{sessionId}": {
+      "schema": "ActivePresence",
+      "description": "Real-time sliding-window live presence heartbeat documents"
+    },
+    "/active_visitors/{visitorId}": {
+      "schema": "ActiveVisitor",
+      "description": "Real-time live presence heartbeat documents"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profile data"
+    },
+    "/products/{productId}": {
+      "schema": "ProductItem",
+      "description": "Digital assets product collection"
+    },
+    "/orders/{orderId}": {
+      "schema": "CustomerOrder",
+      "description": "Customer orders and verification status"
+    },
+    "/settings/global_config": {
+      "schema": "GlobalConfig",
+      "description": "Real-time global site config document for branding, hero banners, categories, and gateway numbers"
+    },
+    "/settings/{settingId}": {
+      "schema": "object",
+      "description": "Global store settings and payment gateway config"
+    }
+  }
+}

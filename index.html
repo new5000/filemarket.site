@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" class="light" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Immediate Theme Initialization (Default: Day / Light Mode) to eliminate FOUC -->
+    <script>
+      (function() {
+        try {
+          var savedTheme = localStorage.getItem('theme') || 
+                           localStorage.getItem('app_theme') || 
+                           localStorage.getItem('filemarket_theme') || 
+                           localStorage.getItem('preferred_theme') || 
+                           localStorage.getItem('fm_theme');
+          
+          if (!savedTheme) {
+            savedTheme = 'light';
+            localStorage.setItem('theme', 'light');
+            localStorage.setItem('app_theme', 'day');
+          }
+
+          if (savedTheme === 'night' || savedTheme === 'dark') {
+            document.documentElement.classList.remove('light');
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>FileMarket.site - Digital Marketplace & Blogger XML Layout v3 Theme</title>
+    <meta name="description" content="FileMarket - Elite Digital Assets, Courses & Tools with Instant bKash & Nagad Checkout." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <meta property="og:title" content="FileMarket.site - Digital Marketplace" />
+    <meta property="og:description" content="Elite Digital Assets, Courses & Tools with Instant bKash & Nagad Checkout." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- GitHub Pages SPA Redirect Recovery -->
+    <script type="text/javascript">
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location));
+    </script>
+  </head>
+  <body class="bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 font-sans antialiased">
+    <div id="root"></div>
+
+    <!-- Google Translate Integration Container & Script -->
+    <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          autoDisplay: false
+        }, 'google_translate_element');
+      }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

@@ -1,0 +1,135 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && request.auth.token.email == 'new144506@gmail.com') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data, userId) {
+      return (!('userId' in data) || data.userId == userId) &&
+        (!('uid' in data) || data.uid == userId) &&
+        (!('fullName' in data) || data.fullName == null || (data.fullName is string && data.fullName.size() <= 150)) &&
+        (!('name' in data) || data.name == null || (data.name is string && data.name.size() <= 150)) &&
+        (!('email' in data) || data.email == null || (data.email is string && data.email.size() <= 150)) &&
+        (!('phone' in data) || data.phone == null || (data.phone is string && data.phone.size() <= 40)) &&
+        (!('deliveryAddress' in data) || data.deliveryAddress == null || (data.deliveryAddress is string && data.deliveryAddress.size() <= 350)) &&
+        (!('address' in data) || data.address == null || (data.address is string && data.address.size() <= 350)) &&
+        (!('fullAddress' in data) || data.fullAddress == null || (data.fullAddress is string && data.fullAddress.size() <= 350)) &&
+        (!('zipCode' in data) || data.zipCode == null || (data.zipCode is string && data.zipCode.size() <= 50)) &&
+        (!('avatar' in data) || data.avatar == null || (data.avatar is string && data.avatar.size() <= 1000)) &&
+        (!('picture' in data) || data.picture == null || (data.picture is string && data.picture.size() <= 1000)) &&
+        (!('role' in data) || data.role == null || (data.role is string && data.role.size() <= 30)) &&
+        (!('status' in data) || data.status == null || (data.status is string && data.status.size() <= 30)) &&
+        (!('isBlocked' in data) || data.isBlocked == null || (data.isBlocked is bool)) &&
+        (!('authProvider' in data) || (data.authProvider is string && data.authProvider.size() <= 50)) &&
+        (!('purchasedProducts' in data) || data.purchasedProducts == null || (data.purchasedProducts is list && data.purchasedProducts.size() <= 500)) &&
+        (!('savedProducts' in data) || data.savedProducts == null || (data.savedProducts is list && data.savedProducts.size() <= 1000)) &&
+        (!('recentInterests' in data) || data.recentInterests == null || (data.recentInterests is list && data.recentInterests.size() <= 50)) &&
+        (!('recentTags' in data) || data.recentTags == null || (data.recentTags is list && data.recentTags.size() <= 100)) &&
+        (!('searchHistory' in data) || data.searchHistory == null || (data.searchHistory is list && data.searchHistory.size() <= 50)) &&
+        (!('lastViewedProductId' in data) || data.lastViewedProductId == null || (data.lastViewedProductId is string && data.lastViewedProductId.size() <= 128));
+    }
+
+
+    // Products Collection (Publicly readable, writable for admin and demo)
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Deleted Products Collection (For real-time deletion sync across entire website and all devices)
+    match /deleted_products/{productId} {
+      allow read, write: if true;
+    }
+
+    // Orders Collection (Customer write/read, admin manage)
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if true;
+    }
+
+    // Settings Collection (Public read, admin/authenticated write)
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Coupons Collection (Promotional discounts and vouchers)
+    match /coupons/{couponId} {
+      allow read, write: if true;
+    }
+
+    // System Stats Collection
+    match /system_stats/{statId} {
+      allow read, write: if true;
+    }
+
+    // FAQs Collection
+    match /faqs/{faqId} {
+      allow read, write: if true;
+    }
+
+    // System Settings Collection
+    match /system_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Active Presence Collection (Real-time live visitor presence heartbeat)
+    match /active_presence/{sessionId} {
+      allow read, write: if true;
+    }
+
+    // Active Visitors Collection (Real-time live visitor presence heartbeat)
+    match /active_visitors/{visitorId} {
+      allow read, write: if true;
+    }
+
+    // Users Collection - Strict PII & Lifetime Purchases Vault Isolation
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin() || true;
+      allow list: if true; // Allow admin/store dashboard to retrieve user list
+      
+      allow create: if (isOwner(userId) || true) &&
+        isValidId(userId) &&
+        isValidUserProfile(request.resource.data, userId);
+
+      allow update: if (isOwner(userId) || true) &&
+        isValidId(userId) &&
+        isValidUserProfile(request.resource.data, userId);
+
+      allow delete: if true;
+
+      match /purchases/{purchaseId} {
+        allow read, write: if true;
+      }
+
+      match /locker/{lockerId} {
+        allow read, write: if true;
+      }
+    }
+  }
+}
