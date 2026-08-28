@@ -13,7 +13,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Product, Currency } from '../types';
-import { DynamicPreviewRenderer } from './DynamicPreviewRenderer';
+import { WatchPreviewCarousel } from './WatchPreviewCarousel';
 import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import { getProductSlug } from '../router';
 
@@ -217,12 +217,11 @@ export const WatchPreviewPage: React.FC<WatchPreviewPageProps> = ({
           </div>
         )}
 
-        {/* Dynamic Sequence Content Renderer (Players + Ads) */}
+        {/* Watch Preview Carousel with Slides, Videos & Specifications */}
         <div className="w-full">
-          <DynamicPreviewRenderer
-            previewBlocks={product.previewBlocks}
-            previewPlayers={product.previewPlayers}
-            videoUrl={product.previewVideoUrl || product.demoUrl}
+          <WatchPreviewCarousel
+            product={product}
+            onInstantBuy={onInstantBuy}
           />
         </div>
 

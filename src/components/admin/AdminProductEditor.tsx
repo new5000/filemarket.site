@@ -1,11 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, PreviewBlock } from '../../types';
 import { 
-  X, Save, Package, Sparkles, Zap, Video, Code, ArrowUp, ArrowDown, Trash2, Check, Link as LinkIcon
+  X, Save, Package, Sparkles, Zap, Video, Code, ArrowUp, ArrowDown, Trash2, Check, Link as LinkIcon, Images, Plus, Upload, Loader2
 } from 'lucide-react';
 import { ImageUploadField } from './ImageUploadField';
 import { formatDirectImageUrl } from '../../utils/formatImageUrl';
 import { generateSeoKeywordCluster } from '../../utils/seoKeywordGenerator';
+
+/**
+ * Pure client-side canvas compression for local gallery image uploads (no AI/API dependency)
+ */
+async function compressImageFile(file: File, maxDimension = 1280, quality = 0.80): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(e.target?.result as string || '');
+        }
+      };
+      img.onerror = () => resolve(e.target?.result as string || '');
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
 
 export interface AdminProductEditorProps {
   initialProduct: Partial<Product> | null;
@@ -28,6 +69,8 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
         priceUSD: initialProduct.priceUSD !== undefined ? initialProduct.priceUSD : 4.99,
         originalPriceBDT: initialProduct.originalPriceBDT !== undefined ? initialProduct.originalPriceBDT : (initialProduct.priceBDT ? initialProduct.priceBDT * 2 : 1000),
         thumbnail: initialProduct.thumbnail || '',
+        previewImages: initialProduct.previewImages || initialProduct.gallery || [],
+        gallery: initialProduct.previewImages || initialProduct.gallery || [],
         badge: initialProduct.badge || '',
         rating: initialProduct.rating || 4.9,
         reviewsCount: initialProduct.reviewsCount || 1,
@@ -56,6 +99,8 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
       priceUSD: 4.99,
       originalPriceBDT: 1500,
       thumbnail: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=800&q=80',
+      previewImages: [],
+      gallery: [],
       badge: '',
       cardSubtitle: 'Commercial & Personal Lifetime License',
       productKind: 'digital',
@@ -72,9 +117,12 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
     };
   });
   const [newFeatureInput, setNewFeatureInput] = useState('');
+  const [newGalleryUrlInput, setNewGalleryUrlInput] = useState('');
   const [colorInput, setColorInput] = useState('');
   const [sizeInput, setSizeInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isProcessingGalleryFiles, setIsProcessingGalleryFiles] = useState(false);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialProduct) {
@@ -126,6 +174,82 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
     setFormData({ ...formData, previewBlocks: current });
   };
 
+  const handleAddGalleryImage = (url: string) => {
+    const clean = formatDirectImageUrl(url.trim());
+    if (!clean) return;
+    const current = formData.previewImages || formData.gallery || [];
+    if (current.length >= 20) {
+      alert('Maximum 20 preview images allowed.');
+      return;
+    }
+    const updated = [...current, clean];
+    setFormData({
+      ...formData,
+      previewImages: updated,
+      gallery: updated
+    });
+    setNewGalleryUrlInput('');
+  };
+
+  const handleGalleryFilesSelected = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const current = formData.previewImages || formData.gallery || [];
+    const remainingSlots = Math.max(0, 20 - current.length);
+    if (remainingSlots <= 0) {
+      alert('Maximum 20 preview slides allowed. Please remove some before adding more.');
+      return;
+    }
+
+    const imageFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].type.startsWith('image/')) {
+        imageFiles.push(files[i]);
+      }
+    }
+
+    if (imageFiles.length === 0) return;
+
+    const toProcess = imageFiles.slice(0, remainingSlots);
+    setIsProcessingGalleryFiles(true);
+    try {
+      const processedUrls = await Promise.all(
+        toProcess.map(f => compressImageFile(f, 1280, 0.80))
+      );
+      const validUrls = processedUrls.filter(Boolean);
+      const updated = [...current, ...validUrls];
+      setFormData(prev => ({
+        ...prev,
+        previewImages: updated,
+        gallery: updated
+      }));
+    } catch (err) {
+      console.error('Error uploading gallery screenshots:', err);
+    } finally {
+      setIsProcessingGalleryFiles(false);
+      if (galleryFileInputRef.current) {
+        galleryFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleClearAllGalleryImages = () => {
+    setFormData(prev => ({
+      ...prev,
+      previewImages: [],
+      gallery: []
+    }));
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    const current = formData.previewImages || formData.gallery || [];
+    const updated = current.filter((_, i) => i !== index);
+    setFormData({
+      ...formData,
+      previewImages: updated,
+      gallery: updated
+    });
+  };
+
   const isPhysical = formData.productKind === 'physical';
 
   return (
@@ -134,7 +258,7 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div>
             <h2 className="text-2xl font-black text-slate-900 dark:text-white font-heading flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-emerald-500" />
+              <Package className="w-6 h-6 text-emerald-500" />
               {initialProduct?.id ? 'Edit Product' : 'Add New Digital Asset'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
@@ -250,6 +374,118 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
               aspectRatio="square"
               helpText="Upload a high-res cover image (PNG, JPG, WEBP)."
             />
+
+            {/* Watch Preview Gallery Images Manager (Up to 20 images) */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <label className="block font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-1.5">
+                      <Images className="w-4 h-4 text-cyan-500" /> Watch Preview Gallery Images ({formData.previewImages?.length || 0}/20)
+                    </label>
+                    {formData.previewImages && formData.previewImages.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearAllGalleryImages}
+                        className="text-[10px] font-bold text-rose-500 hover:text-rose-600 underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    These slides appear inside the customer "Watch Preview" modal &amp; carousel (up to 20 slides).
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={galleryFileInputRef}
+                    onChange={(e) => handleGalleryFilesSelected(e.target.files)}
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    disabled={isProcessingGalleryFiles || (formData.previewImages?.length || 0) >= 20}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => galleryFileInputRef.current?.click()}
+                    disabled={isProcessingGalleryFiles || (formData.previewImages?.length || 0) >= 20}
+                    className="px-3 py-1.5 bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {isProcessingGalleryFiles ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    <span>Upload Images ({formData.previewImages?.length || 0}/20)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Gallery Image Grid */}
+              {formData.previewImages && formData.previewImages.length > 0 && (
+                <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
+                    {formData.previewImages.map((imgUrl, idx) => (
+                      <div key={idx} className="group relative aspect-video rounded-xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <img 
+                          src={imgUrl} 
+                          alt={`Preview ${idx + 1}`} 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const fallbackImages = [
+                              'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
+                              'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80',
+                              'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80'
+                            ];
+                            (e.target as HTMLImageElement).src = fallbackImages[idx % fallbackImages.length];
+                          }}
+                        />
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/70 backdrop-blur-xs text-[9px] font-bold text-white rounded">
+                          #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGalleryImage(idx)}
+                          className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg opacity-90 group-hover:opacity-100 transition shadow-sm cursor-pointer"
+                          title="Remove image"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add New Gallery Image URL */}
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  placeholder="Or paste direct image URL (https://...)"
+                  value={newGalleryUrlInput}
+                  onChange={(e) => setNewGalleryUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddGalleryImage(newGalleryUrlInput);
+                    }
+                  }}
+                  className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-cyan-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAddGalleryImage(newGalleryUrlInput)}
+                  disabled={!newGalleryUrlInput.trim() || (formData.previewImages?.length || 0) >= 20}
+                  className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-xl disabled:opacity-40 transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add URL
+                </button>
+              </div>
+            </div>
 
             {!isPhysical ? (
               <div>

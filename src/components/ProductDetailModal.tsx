@@ -896,16 +896,19 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
         </div>
       </div>
 
-      {/* Video Preview Modal Popup with Ads */}
+      {/* Video / Interactive Gallery Preview Modal Popup */}
       <VideoPreviewModal
         isOpen={showVideoModal}
         onClose={() => setShowVideoModal(false)}
+        product={product}
         videoUrl={product.previewVideoUrl || product.demoUrl}
         previewWebsiteUrl={product.previewWebsiteUrl}
         previewPlayers={product.previewPlayers}
         previewBlocks={product.previewBlocks}
+        previewImages={product.previewImages || product.gallery}
         title={`Preview: ${product.title}`}
         thumbnailUrl={product.thumbnail}
+        onInstantBuy={onInstantBuy}
       />
 
       {/* Toast Notification for Clipboard Copy */}

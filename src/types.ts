@@ -70,6 +70,8 @@ export interface Product {
   demoUrl?: string;
   previewVideoUrl?: string;
   previewWebsiteUrl?: string;
+  previewImages?: string[];
+  gallery?: string[];
   previewPlayers?: PreviewPlayer[];
   previewBlocks?: PreviewBlock[];
   updatedDate: string;

@@ -410,12 +410,20 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add New Product
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenAdd}
+            className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-500 hover:opacity-95 text-white font-black text-xs shadow-lg shadow-purple-600/20 flex items-center justify-center gap-1.5 transition cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300" /> ✨ AI Quick Import
+          </button>
+          <button
+            onClick={handleOpenAdd}
+            className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> Add Product
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search controls */}
