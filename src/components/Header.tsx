@@ -92,13 +92,13 @@ export const Header: React.FC<HeaderProps> = memo(({
           {/* Large Bold Brand Name */}
           <div className="relative flex items-center font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-[2.6rem] font-black tracking-tight select-none leading-none truncate py-1">
             {/* First Part of Brand Name */}
-            <span className="relative z-10 text-slate-900 dark:text-white transition-all duration-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-300">
+            <span className="relative z-10 text-black dark:text-white transition-all duration-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
               {brandFirst}
             </span>
 
-            {/* Second Part of Brand Name with Animated Emerald Gradient */}
+            {/* Second Part of Brand Name with Deep Rich Emerald Gradient */}
             {brandSecond && (
-              <span className="relative z-10 ml-1 sm:ml-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 bg-clip-text text-transparent animate-brand-gradient font-black transition-all duration-300 group-hover:brightness-110">
+              <span className="relative z-10 ml-1 sm:ml-1.5 bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-800 dark:from-emerald-400 dark:via-emerald-300 dark:to-teal-300 bg-clip-text text-transparent animate-brand-gradient font-black transition-all duration-300 group-hover:brightness-110">
                 {brandSecond}
               </span>
             )}

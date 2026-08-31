@@ -440,106 +440,126 @@ export const MyProductsPage: React.FC<MyProductsPageProps> = ({
         )}
 
         {/* Top Header Card */}
-        <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-sm box-border relative">
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="absolute top-4 right-4 p-2 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+        <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-sm box-border space-y-3.5">
+          {/* Top Row: Customer Vault Badge & Close Button */}
+          <div className="flex items-center justify-between">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Universal Customer Dashboard • Digital Vault & Physical Tracker
+              Customer Vault
             </div>
             
-            <div className="pr-8">
-              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                My Purchases & Orders
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">
-                Welcome <span className="font-semibold text-slate-800 dark:text-slate-200">{userName || 'Valued Customer'}</span>! Manage downloads and track deliveries in real time.
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-            {/* Tab Switcher Pills */}
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 overflow-x-auto pb-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab('downloads')}
-                className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  activeTab === 'downloads'
-                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>My Downloads</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/20 font-black">
-                  {purchasedItems.length}
-                </span>
-              </button>
+          {/* Title and Subtitle */}
+          <div>
+            <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
+              My Purchases & Orders
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">
+              Manage your digital downloads & active orders{userName ? ` • Welcome, ${userName}` : ''}.
+            </p>
+          </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('physical')}
-                className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  activeTab === 'physical'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-              >
-                <Truck className="w-3.5 h-3.5" />
-                <span>Physical Orders</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/20 font-black">
-                  {physicalOrders.length}
-                </span>
-              </button>
+          {/* Compact 3-Column Tab Bar (Zero Overflow / No Cutting Off) */}
+          <div className="grid grid-cols-3 gap-1.5 w-full my-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+            {/* Tab 1: Downloads */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('downloads')}
+              className={`flex items-center justify-center gap-1 py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none active:scale-95 ${
+                activeTab === 'downloads'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Download className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Downloads</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 shrink-0 ${
+                activeTab === 'downloads'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+              }`}>
+                {purchasedItems.length}
+              </span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('pending')}
-                className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+            {/* Tab 2: Physical */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('physical')}
+              className={`flex items-center justify-center gap-1 py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none active:scale-95 ${
+                activeTab === 'physical'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Physical</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 shrink-0 ${
+                activeTab === 'physical'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+              }`}>
+                {physicalOrders.length}
+              </span>
+            </button>
+
+            {/* Tab 3: Pending */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('pending')}
+              className={`flex items-center justify-center gap-1 py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none active:scale-95 ${
+                activeTab === 'pending'
+                  ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/20'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Pending</span>
+              {pendingOrders.length > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 shrink-0 ${
                   activeTab === 'pending'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>Pending Approvals</span>
-                {pendingOrders.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-600 text-white font-black animate-pulse">
-                    {pendingOrders.length}
-                  </span>
-                )}
-              </button>
-            </div>
+                    ? 'bg-white/20 text-white'
+                    : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse'
+                }`}>
+                  {pendingOrders.length}
+                </span>
+              )}
+            </button>
+          </div>
 
-            <div className="flex items-center gap-2 pt-1 flex-wrap">
-              <button
-                type="button"
-                onClick={refreshLocker}
-                disabled={isLoading}
-                title="Refresh from Cloud"
-                className="p-2 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs transition cursor-pointer shrink-0"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-500' : ''}`} />
-              </button>
+          {/* Action Row: Refresh & Explore Store */}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={refreshLocker}
+              disabled={isLoading}
+              title="Refresh from Cloud"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-500' : ''}`} />
+              <span>Refresh</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onExploreStore();
-                }}
-                className="px-3.5 py-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-sm active:scale-95 cursor-pointer flex items-center gap-1.5"
-              >
-                <span>🛍️</span> Explore More Products
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onExploreStore();
+              }}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <span>🛍️</span>
+              <span>Browse Store</span>
+            </button>
           </div>
         </div>
 
@@ -567,14 +587,14 @@ export const MyProductsPage: React.FC<MyProductsPageProps> = ({
                   </select>
                 )}
 
-                <div className="relative flex-1 min-w-0">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <div className="relative flex-1 min-w-0 w-full">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input 
                     type="text"
                     placeholder="Search downloads..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 w-full box-border"
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 w-full box-border shadow-xs"
                   />
                 </div>
               </div>
@@ -656,22 +676,22 @@ export const MyProductsPage: React.FC<MyProductsPageProps> = ({
                       </div>
 
                       {/* Actions Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                         <button
                           type="button"
                           onClick={() => handleCopyKey(item.id, licenseKey)}
-                          className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                          className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95"
                         >
                           <Key className="w-3.5 h-3.5 text-emerald-500" />
-                          {isCopied ? '✓ Copied!' : 'Copy License'}
+                          <span>{isCopied ? '✓ Copied!' : 'Copy License'}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleDownloadAsset(item)}
-                          className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm text-center cursor-pointer"
+                          className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm text-center cursor-pointer active:scale-95"
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          <span>⚡</span>
                           <span>Download Asset</span>
                           <ExternalLink className="w-3 h-3 opacity-70" />
                         </button>
