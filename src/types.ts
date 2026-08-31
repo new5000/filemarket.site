@@ -25,6 +25,8 @@ export interface PreviewBlock {
   aspectRatio?: '16:9' | '9:16';
   // For 'ad' block
   code?: string;
+  adSizePreset?: AdSizePreset;
+  title?: string;
 }
 
 export interface PreviewPlayer {
@@ -70,6 +72,11 @@ export interface Product {
   demoUrl?: string;
   previewVideoUrl?: string;
   previewWebsiteUrl?: string;
+  liveDemoEnabled?: boolean;
+  liveDemoUrl?: string;
+  liveDemoButtonText?: string;
+  enableGallery?: boolean;
+  enableVideo?: boolean;
   previewImages?: string[];
   gallery?: string[];
   previewPlayers?: PreviewPlayer[];
@@ -91,6 +98,58 @@ export interface Product {
   shippingCostUSD?: number;
   estimatedDeliveryDays?: string;
   variants?: ProductVariants;
+}
+
+export type AdSizePreset = 
+  | 'responsive' 
+  | 'mobile_banner_320x50' 
+  | 'banner_468x60'
+  | 'medium_rectangle_300x250' 
+  | 'leaderboard_728x90' 
+  | 'custom';
+
+export type AdContentType = 'script' | 'custom_image' | 'banner' | 'html';
+
+export interface GlobalAdSlotConfig {
+  enabled: boolean;
+  type: AdContentType;
+  adSizePreset: AdSizePreset | string;
+  customWidth?: string;
+  customHeight?: string;
+  code?: string;
+  imageUrl?: string;
+  targetUrl?: string;
+  title?: string;
+  badge?: string;
+  subtext?: string;
+  ctaText?: string;
+  altText?: string;
+  frequency?: number;
+}
+
+export interface GlobalAdsManagerConfig {
+  enabled: boolean;
+  // 4 Core Streamlined Global Placements:
+  footerTopBanner: GlobalAdSlotConfig;      // Slot 1: Directly above Author Card / Footer
+  footerBottomBanner: GlobalAdSlotConfig;   // Slot 2: Absolute bottom of page below copyright
+  previewMediaTop: GlobalAdSlotConfig;      // Slot 3: Above Video Player & Gallery in Watch Preview
+  previewMediaBottom: GlobalAdSlotConfig;   // Slot 4: Below Video Player & Gallery in Watch Preview
+
+  // Aliases for backward compatibility
+  preFooterBanner?: GlobalAdSlotConfig;
+  footerAbsoluteBottom?: GlobalAdSlotConfig;
+  previewPageTop?: GlobalAdSlotConfig;
+  previewPageBottom?: GlobalAdSlotConfig;
+  footerSponsored?: GlobalAdSlotConfig;
+  homeTopBanner?: GlobalAdSlotConfig;
+  homeInGrid?: GlobalAdSlotConfig;
+  homeInFeed?: GlobalAdSlotConfig;
+  productRelatedBanner?: GlobalAdSlotConfig;
+  productDetailInContent?: GlobalAdSlotConfig;
+  headerBanner?: GlobalAdSlotConfig;
+  inGridAd?: GlobalAdSlotConfig;
+  productDetailAd?: GlobalAdSlotConfig;
+  floatingMobileBottom?: GlobalAdSlotConfig;
 }
 
 export interface CartItem {
@@ -488,9 +547,140 @@ export interface GlobalConfig {
       license: { titleEn: string; titleBn: string; descriptionEn: string; };
     };
   };
+  globalAds?: GlobalAdsManagerConfig;
 }
 
+export const DEFAULT_GLOBAL_ADS_CONFIG: GlobalAdsManagerConfig = {
+  enabled: true,
+  // 4 Core Streamlined Global Placements:
+  footerTopBanner: {
+    enabled: true,
+    type: 'custom_image',
+    title: '🛡️ 100% Virus-Scanned & Direct Drive Delivery',
+    badge: 'SPONSORED',
+    subtext: 'Instant 100% refund guarantee if any asset is defective or broken.',
+    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Learn More ↗',
+    code: '',
+    adSizePreset: 'leaderboard_728x90',
+  },
+  footerBottomBanner: {
+    enabled: true,
+    type: 'custom_image',
+    title: '⚡ Exclusive VIP Creative Cloud Suite 2026',
+    badge: 'SPONSORED',
+    subtext: 'Direct Google Drive lifetime downloads with verified commercial licenses.',
+    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Claim Access ↗',
+    code: '',
+    adSizePreset: 'responsive',
+  },
+  previewMediaTop: {
+    enabled: false,
+    type: 'custom_image',
+    title: '⚡ Instant Cloud Video & Asset Access',
+    badge: 'SPONSORED',
+    subtext: 'High-speed automated delivery directly to your cloud locker.',
+    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Instant Delivery ↗',
+    code: '',
+    adSizePreset: 'responsive',
+  },
+  previewMediaBottom: {
+    enabled: false,
+    type: 'custom_image',
+    title: '⚡ VIP Cloud All-Access Pass 2026',
+    badge: 'SPONSORED',
+    subtext: 'Direct Google Drive lifetime downloads with verified licenses.',
+    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Explore VIP Pass ↗',
+    code: '',
+    adSizePreset: 'medium_rectangle_300x250',
+  },
+  // Backward-compatibility aliases
+  preFooterBanner: {
+    enabled: true,
+    type: 'custom_image',
+    title: '🛡️ 100% Virus-Scanned & Direct Drive Delivery',
+    badge: 'SPONSORED',
+    subtext: 'Instant 100% refund guarantee if any asset is defective or broken.',
+    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Learn More ↗',
+    code: '',
+    adSizePreset: 'leaderboard_728x90',
+  },
+  footerAbsoluteBottom: {
+    enabled: true,
+    type: 'custom_image',
+    title: '⚡ Exclusive VIP Creative Cloud Suite 2026',
+    badge: 'SPONSORED',
+    subtext: 'Direct Google Drive lifetime downloads with verified commercial licenses.',
+    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Claim Access ↗',
+    code: '',
+    adSizePreset: 'responsive',
+  },
+  previewPageTop: {
+    enabled: false,
+    type: 'custom_image',
+    title: '⚡ Instant Cloud Video & Asset Access',
+    badge: 'SPONSORED',
+    subtext: 'High-speed automated delivery directly to your cloud locker.',
+    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Instant Delivery ↗',
+    code: '',
+    adSizePreset: 'responsive',
+  },
+  previewPageBottom: {
+    enabled: false,
+    type: 'custom_image',
+    title: '⚡ VIP Cloud All-Access Pass 2026',
+    badge: 'SPONSORED',
+    subtext: 'Direct Google Drive lifetime downloads with verified licenses.',
+    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Explore VIP Pass ↗',
+    code: '',
+    adSizePreset: 'medium_rectangle_300x250',
+  },
+  homeTopBanner: {
+    enabled: false,
+    type: 'custom_image',
+    adSizePreset: 'responsive',
+  },
+  homeInGrid: {
+    enabled: false,
+    type: 'custom_image',
+    adSizePreset: 'medium_rectangle_300x250',
+  },
+  productRelatedBanner: {
+    enabled: false,
+    type: 'custom_image',
+    adSizePreset: 'responsive',
+  },
+  footerSponsored: {
+    enabled: true,
+    type: 'custom_image',
+    title: '🛡️ 100% Virus-Scanned & Direct Drive Delivery',
+    badge: 'SPONSORED',
+    subtext: 'Instant 100% refund guarantee if any asset is defective or broken.',
+    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    targetUrl: 'https://filemarket.site',
+    ctaText: 'Learn More ↗',
+    code: '',
+    adSizePreset: 'leaderboard_728x90',
+  },
+};
+
 export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
+  globalAds: DEFAULT_GLOBAL_ADS_CONFIG,
   telegram: {
     botToken: '',
     chatId: '',

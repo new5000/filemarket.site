@@ -2,102 +2,163 @@ import { ref, uploadBytes, getDownloadURL, deleteObject, getStorage } from 'fire
 import { getApp } from 'firebase/app';
 
 /**
+ * Pure client-side canvas compression for images (WebP/JPEG, max 900px, ~20-35KB per image)
+ */
+export async function compressImageFile(
+  file: File,
+  maxDimension = 900,
+  quality = 0.72
+): Promise<string> {
+  return new Promise((resolve) => {
+    // If SVG, return as data url
+    if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const rawDataUrl = e.target?.result as string;
+      if (!rawDataUrl) {
+        resolve('');
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          try {
+            // Try WebP first for optimal compression
+            const webpUrl = canvas.toDataURL('image/webp', quality);
+            if (webpUrl && webpUrl.startsWith('data:image/webp')) {
+              resolve(webpUrl);
+              return;
+            }
+          } catch {}
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(rawDataUrl);
+        }
+      };
+      img.onerror = () => resolve(rawDataUrl);
+      img.src = rawDataUrl;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Compress an existing Data URL if it is oversized
+ */
+export async function compressImageDataUrl(
+  dataUrl: string,
+  maxDimension = 900,
+  quality = 0.72
+): Promise<string> {
+  if (!dataUrl || !dataUrl.startsWith('data:image/') || dataUrl.length < 50000) {
+    return dataUrl;
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, width);
+      canvas.height = Math.max(1, height);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        try {
+          const webpUrl = canvas.toDataURL('image/webp', quality);
+          if (webpUrl && webpUrl.startsWith('data:image/webp')) {
+            resolve(webpUrl);
+            return;
+          }
+        } catch {}
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } else {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+/**
  * Enterprise Image File Compression & Upload Utility
- * Supports direct file upload with automatic image resizing/compression (max 1200px, 85% webp/jpeg quality)
- * Falls back safely to base64 DataURL if Firebase Storage is in local emulator or offline.
+ * Performs canvas compression first (~25KB payload), then attempts Firebase Storage if available.
  */
 export async function uploadImageFile(
   file: File,
   folder: string = 'uploads',
-  maxWidth: number = 1200,
-  quality: number = 0.85
+  maxWidth: number = 900,
+  quality: number = 0.72
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const result = e.target?.result as string;
-      if (!result) {
-        reject(new Error('Failed to read file'));
-        return;
+  // 1. First obtain an ultra-efficient compressed Data URL
+  const compressedDataUrl = await compressImageFile(file, maxWidth, quality);
+
+  // 2. Try Firebase Storage in background if configured
+  try {
+    const app = getApp();
+    const storage = getStorage(app);
+    const filename = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}.webp`;
+    const storageRef = ref(storage, filename);
+
+    if (compressedDataUrl.startsWith('data:')) {
+      const parts = compressedDataUrl.split(',');
+      const byteString = atob(parts[1]);
+      const mimeString = parts[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
       }
+      const blob = new Blob([ab], { type: mimeString });
+      await uploadBytes(storageRef, blob, { contentType: mimeString });
+      const downloadUrl = await getDownloadURL(storageRef);
+      return downloadUrl;
+    }
+  } catch {
+    // If Firebase Storage is unconfigured or blocked, safely return the lightweight base64
+  }
 
-      // Check if SVG - return as-is
-      if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
-        try {
-          const app = getApp();
-          const storage = getStorage(app);
-          const filename = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-          const storageRef = ref(storage, filename);
-          await uploadBytes(storageRef, file, { contentType: file.type });
-          const downloadUrl = await getDownloadURL(storageRef);
-          resolve(downloadUrl);
-          return;
-        } catch {
-          resolve(result); // Fallback to Data URL
-          return;
-        }
-      }
-
-      // Create an image element for canvas compression
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = async () => {
-        try {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const compressedDataUrl = canvas.toDataURL('image/webp', quality);
-
-            // Attempt Firebase Storage upload if available
-            try {
-              const app = getApp();
-              const storage = getStorage(app);
-              const filename = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}.webp`;
-              const storageRef = ref(storage, filename);
-
-              // Convert DataURL to Blob
-              const byteString = atob(compressedDataUrl.split(',')[1]);
-              const mimeString = compressedDataUrl.split(',')[0].split(':')[1].split(';')[0];
-              const ab = new ArrayBuffer(byteString.length);
-              const ia = new Uint8Array(ab);
-              for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-              }
-              const blob = new Blob([ab], { type: mimeString });
-
-              await uploadBytes(storageRef, blob, { contentType: 'image/webp' });
-              const downloadUrl = await getDownloadURL(storageRef);
-              resolve(downloadUrl);
-            } catch {
-              // Fallback to high-efficiency compressed Data URL
-              resolve(compressedDataUrl);
-            }
-          } else {
-            resolve(result);
-          }
-        } catch {
-          resolve(result);
-        }
-      };
-      img.onerror = () => {
-        resolve(result);
-      };
-      img.src = result;
-    };
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
-  });
+  return compressedDataUrl;
 }
 
 /**
@@ -105,20 +166,17 @@ export async function uploadImageFile(
  */
 export async function uploadPaymentReceipt(file: File, orderId?: string): Promise<string> {
   const folder = 'payment_receipts';
-  const prefix = orderId ? `${orderId}_${Date.now()}` : `receipt_${Date.now()}`;
-  return uploadImageFile(file, folder, 1400, 0.88);
+  return uploadImageFile(file, folder, 1000, 0.75);
 }
 
 /**
  * Universal media file uploader (supports images, videos, zip, pdf, etc.)
  */
 export async function uploadMediaFile(file: File, folder: string = 'media'): Promise<string> {
-  // If image, use compressed image uploader
   if (file.type.startsWith('image/')) {
     return uploadImageFile(file, folder);
   }
 
-  // Generic direct binary upload to Firebase Storage
   try {
     const app = getApp();
     const storage = getStorage(app);
@@ -156,4 +214,5 @@ export async function deleteStorageFile(fileUrl?: string | null): Promise<boolea
   }
   return false;
 }
+
 

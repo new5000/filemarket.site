@@ -11,7 +11,7 @@ import {
   orderBy, 
   onSnapshot 
 } from 'firebase/firestore';
-import { db, auth, addPurchasedProductToUser, PurchasedProductItem, cleanFirestoreData } from './firebase';
+import { db, auth, addPurchasedProductToUser, PurchasedProductItem, cleanFirestoreData, prepareProductPayloadForFirestore } from './firebase';
 import { Product, GlobalConfig, DEFAULT_GLOBAL_CONFIG } from '../types';
 
 export interface AdminOrder {
@@ -82,6 +82,7 @@ export function subscribeGlobalConfig(callback: (config: GlobalConfig) => void):
           notice: data.notice || data.branding?.announcement || '',
           telegram: data.telegram || DEFAULT_GLOBAL_CONFIG.telegram,
           branding: { ...DEFAULT_GLOBAL_CONFIG.branding, ...data.branding },
+          globalAds: data.globalAds ? { ...DEFAULT_GLOBAL_CONFIG.globalAds, ...data.globalAds } : DEFAULT_GLOBAL_CONFIG.globalAds,
           heroSliders: data.heroSliders && data.heroSliders.length > 0 ? data.heroSliders : DEFAULT_GLOBAL_CONFIG.heroSliders,
           categories: data.categories && data.categories.length > 0 ? data.categories : DEFAULT_GLOBAL_CONFIG.categories,
           paymentGateways: { ...DEFAULT_GLOBAL_CONFIG.paymentGateways, ...data.paymentGateways, ...data.gateways },
@@ -260,7 +261,7 @@ export async function fetchAllProducts(): Promise<Product[]> {
 
 export async function saveAdminProduct(product: Product): Promise<void> {
   const strId = String(product.id);
-  const cleanedProduct = cleanFirestoreData(product);
+  const cleanedProduct = prepareProductPayloadForFirestore(product);
   // If product was previously marked deleted, un-delete it locally and in Firestore
   try {
     const deletedStr = localStorage.getItem('fm_deleted_product_ids') || '[]';

@@ -1,15 +1,14 @@
-import React, { useState, useEffect, memo, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, Currency } from '../types';
 import { ProductCard } from './ProductCard';
 import { Sparkles } from 'lucide-react';
-import { CardSkeletonLoader } from './GlobalLoader';
 import { useGlobalSettings } from '../context/GlobalSettingsContext';
 
 interface ProductGridProps {
   products?: Product[];
-  currency: Currency;
   selectedCategory: string;
   searchQuery: string;
+  currency: Currency;
   onInstantBuy: (product: Product) => void;
   onViewDetails: (product: Product) => void;
   savedProducts?: string[];
@@ -17,48 +16,43 @@ interface ProductGridProps {
   isLoading?: boolean;
 }
 
-export const ProductGrid: React.FC<ProductGridProps> = memo(({
-  products = [],
-  currency,
+export const ProductGrid: React.FC<ProductGridProps> = React.memo(({
+  products,
   selectedCategory,
   searchQuery,
+  currency,
   onInstantBuy,
   onViewDetails,
-  savedProducts = [],
+  savedProducts,
   onToggleSave,
   isLoading = false,
 }) => {
   const { globalConfig } = useGlobalSettings();
-  const BATCH_SIZE = 12;
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const safeProducts = useMemo(() => Array.isArray(products) ? products : [], [products]);
+  const safeProducts = Array.isArray(products) ? products : [];
+  const [visibleCount, setVisibleCount] = useState<number>(12);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
 
-  // Reset visible count whenever category or search filter changes
+  // Reset pagination when category or search changes
   useEffect(() => {
-    setVisibleCount(BATCH_SIZE);
+    setVisibleCount(12);
   }, [selectedCategory, searchQuery]);
-
-  const displayedProducts = useMemo(() => {
-    return safeProducts.slice(0, visibleCount);
-  }, [safeProducts, visibleCount]);
 
   const handleLoadMore = () => {
     setIsLoadingMore(true);
-    // Smooth micro-task reveal without layout jump
     setTimeout(() => {
-      setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, safeProducts.length));
+      setVisibleCount(prev => prev + 12);
       setIsLoadingMore(false);
-    }, 150);
+    }, 250);
   };
 
-  const productGridHeading = globalConfig?.homeContent?.productGridHeading || 'Featured Digital Marketplace Assets';
-  const loadMoreText = globalConfig?.homeContent?.loadMoreText || 'Load More Products';
+  const displayedProducts = safeProducts.slice(0, visibleCount);
+
+  const productGridHeading = 'Featured Verified Assets';
+  const loadMoreText = 'Load More Assets';
 
   return (
     <div className="space-y-6">
-      
       {/* Section Header with Category */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-3 flex-wrap">
@@ -75,13 +69,18 @@ export const ProductGrid: React.FC<ProductGridProps> = memo(({
         </div>
       </div>
 
-      {/* Grid of Products - Dynamic items per view */}
+      {/* Grid of Products */}
       {isLoading ? (
-        <CardSkeletonLoader count={8} />
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 w-full">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="aspect-[3/4] rounded-3xl bg-slate-100 dark:bg-slate-800/50 animate-pulse border border-slate-200 dark:border-slate-800" />
+          ))}
+        </div>
       ) : displayedProducts && displayedProducts.length > 0 ? (
         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 w-full">
           {displayedProducts.map((product) => {
             if (!product || !product.id) return null;
+
             return (
               <ProductCard
                 key={product.id}
@@ -135,3 +134,5 @@ export const ProductGrid: React.FC<ProductGridProps> = memo(({
 });
 
 ProductGrid.displayName = 'ProductGrid';
+
+export default ProductGrid;

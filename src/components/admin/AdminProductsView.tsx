@@ -280,6 +280,8 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
       priceUSD: Number(formData.priceUSD) || Number((Number(formData.priceBDT) / 100).toFixed(2)),
       originalPriceBDT: Number(formData.originalPriceBDT) || Number(formData.priceBDT) * 2,
       thumbnail: formData.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=800&q=80',
+      previewImages: formData.previewImages || formData.gallery || [],
+      gallery: formData.previewImages || formData.gallery || [],
       badge: formData.badge || '',
       rating: Number(formData.rating) || 4.9,
       reviewsCount: Number(formData.reviewsCount) || 12,
@@ -294,7 +296,12 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
       instantDownloadLink: isPhysical ? (formData.instantDownloadLink || 'physical-shipment') : (formData.instantDownloadLink || ''),
       previewVideoUrl: firstPlayerUrl,
       demoUrl: firstPlayerUrl,
-      previewWebsiteUrl: formData.previewWebsiteUrl || '',
+      previewWebsiteUrl: formData.liveDemoUrl || formData.previewWebsiteUrl || '',
+      liveDemoUrl: formData.liveDemoUrl || formData.previewWebsiteUrl || '',
+      liveDemoEnabled: formData.liveDemoEnabled !== false,
+      liveDemoButtonText: formData.liveDemoButtonText || 'Open Full Interactive Live Demo Website ↗',
+      enableGallery: formData.enableGallery !== false,
+      enableVideo: formData.enableVideo !== false,
       previewPlayers: playerBlocks.map((pl, idx) => ({
         id: idx + 1,
         enabled: pl.enabled !== false,
@@ -307,7 +314,9 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
       downloadsCount: Number(formData.downloadsCount) || 0,
       updatedDate: formData.releaseDate || formData.updatedDate || 'August 2026',
       releaseDate: formData.releaseDate || formData.updatedDate || 'August 2026',
-      tags: formData.tags || [],
+      tags: Array.isArray(formData.tags) 
+        ? formData.tags 
+        : (typeof formData.tags === 'string' ? (formData.tags as string).split(',').map((t: string) => t.trim()).filter(Boolean) : []),
       ...(isPhysical ? {
         stockQuantity: Number(formData.stockQuantity) || 0,
         sku: formData.sku || 'SKU-' + targetId,

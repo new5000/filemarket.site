@@ -84,8 +84,10 @@ export const searchProducts = async (searchTerm: string): Promise<Product[]> => 
     const title = normalizeText(p.title);
     const desc = normalizeText(p.description || '');
     const cat = normalizeText(p.category || '');
-    const tags = (p.tags || []).map(normalizeText).join(' ');
-    const keywords = (p.keywords || []).map(normalizeText).join(' ');
+    const safeTagsArray = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? (p.tags as string).split(',') : []);
+    const safeKeywordsArray = Array.isArray(p.keywords) ? p.keywords : (typeof p.keywords === 'string' ? (p.keywords as string).split(',') : []);
+    const tags = safeTagsArray.map(normalizeText).join(' ');
+    const keywords = safeKeywordsArray.map(normalizeText).join(' ');
     
     const searchableText = [title, desc, cat, tags, keywords].join(' | ');
     

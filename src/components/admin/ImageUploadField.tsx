@@ -36,17 +36,20 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
 
     setIsUploading(true);
     setUploadError(null);
+
     try {
-      let uploadedUrl = '';
+      let finalUrl = '';
       if (acceptVideo || !file.type.startsWith('image/')) {
-        uploadedUrl = await uploadMediaFile(file, folder);
+        finalUrl = await uploadMediaFile(file, folder);
       } else {
-        uploadedUrl = await uploadImageFile(file, folder);
+        finalUrl = await uploadImageFile(file, folder, 900, 0.72);
       }
-      onChange(uploadedUrl);
+      if (finalUrl) {
+        onChange(finalUrl);
+      }
     } catch (err: any) {
       console.error('Upload failed:', err);
-      setUploadError('Failed to upload file. Please try URL or another file.');
+      setUploadError('Failed to process image file. Please try another image or direct URL.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -56,6 +59,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const handleClear = () => {
     onChange('');
     setUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const getAspectClass = () => {
@@ -79,24 +83,24 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           <button
             type="button"
             onClick={() => setMode('upload')}
-            className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+            className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
               mode === 'upload'
                 ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            File Upload
+            Local File Upload
           </button>
           <button
             type="button"
             onClick={() => setMode('url')}
-            className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+            className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
               mode === 'url'
                 ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            Direct URL
+            {acceptVideo ? 'Direct Video URL (MP4 / YouTube / Cloud Link)' : 'Direct Image URL'}
           </button>
         </div>
       </div>
@@ -105,7 +109,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         {/* Preview Thumbnail */}
         {value ? (
           <div className="relative group shrink-0">
-            <div className={`${getAspectClass()} rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center p-1`}>
+            <div className={`${getAspectClass()} rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center p-1 shadow-xs`}>
               {isVideo ? (
                 <div className="w-full h-full bg-slate-900 rounded-lg flex items-center justify-center text-emerald-500">
                   <Video className="w-6 h-6" />
@@ -153,17 +157,17 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition cursor-pointer disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition cursor-pointer disabled:opacity-60 shadow-xs"
               >
                 {isUploading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
-                    <span>Uploading...</span>
+                    <span>Processing Image...</span>
                   </>
                 ) : (
                   <>
                     <Upload className="w-4 h-4 text-emerald-500" />
-                    <span>{value ? 'Replace File' : acceptVideo ? 'Choose Image or Video File' : 'Choose Image File (PNG, JPG, SVG, WEBP)'}</span>
+                    <span>{value ? 'Replace File' : acceptVideo ? 'Choose Image or Video File' : 'Choose Local Image File (PNG, JPG, SVG, WEBP)'}</span>
                   </>
                 )}
               </button>

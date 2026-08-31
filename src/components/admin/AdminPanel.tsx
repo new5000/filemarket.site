@@ -10,6 +10,7 @@ import { AdminSettingsView } from './AdminSettingsView';
 import { AdminPaymentSettingsView } from './AdminPaymentSettingsView';
 import { AdminCouponsView } from './AdminCouponsView';
 import { AdminHeroBannersView } from './AdminHeroBannersView';
+import { AdminAdsView } from './AdminAdsView';
 import { AdminFAQManager } from './AdminFAQManager';
 import { Product } from '../../types';
 import { 
@@ -122,6 +123,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             {activeTab === 'banners' && (
               <AdminHeroBannersView
+                onRefresh={loadAdminData}
+              />
+            )}
+
+            {activeTab === 'ads' && (
+              <AdminAdsView
                 onRefresh={loadAdminData}
               />
             )}

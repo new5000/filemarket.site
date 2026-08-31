@@ -20,7 +20,8 @@ import {
   Search,
   ExternalLink,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Megaphone
 } from 'lucide-react';
 import { navigateTo } from '../../router';
 import { auth } from '../../lib/firebase';
@@ -30,6 +31,7 @@ export type AdminTab =
   | 'dashboard' 
   | 'cms' 
   | 'banners'
+  | 'ads'
   | 'products' 
   | 'orders' 
   | 'coupons' 
@@ -96,6 +98,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       shortLabel: 'Hero Banners',
       icon: Tv,
       description: 'Artwork sliders, promo badges & call-to-action triggers'
+    },
+    { 
+      id: 'ads' as AdminTab, 
+      label: '📢 Ads & Monetization', 
+      shortLabel: 'Ads Manager',
+      icon: Megaphone,
+      description: 'Adsterra/AdSense scripts, image banners & 5 global ad slots'
     },
     { 
       id: 'products' as AdminTab, 

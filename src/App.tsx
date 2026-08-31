@@ -49,6 +49,7 @@ import BloggerXmlStudioModal from './components/BloggerXmlStudioModal';
 import { WatchPreviewPage } from './components/WatchPreviewPage';
 import { CartDrawer } from './components/CartDrawer';
 import { CustomPageView } from './components/CustomPageView';
+import { AdSlotRenderer } from './components/ads/AdSlotRenderer';
 
 function MainApp() {
   // Real-time live presence tracking across all visitors & tabs
@@ -718,6 +719,7 @@ function MainApp() {
                     />
                   </div>
 
+
                   <ProductGrid
                     products={filteredProducts}
                     currency={currency}
@@ -733,6 +735,11 @@ function MainApp() {
             </AnimatePresence>
           </main>
 
+          {/* Slot 4: Pre-Footer Banner (Centered between content and footer) */}
+          <div className="w-full max-w-5xl mx-auto px-4">
+            <AdSlotRenderer slotKey="footerTopBanner" />
+          </div>
+
           {/* Footer */}
           <Footer
             onSelectCategory={(cat) => {
@@ -742,6 +749,11 @@ function MainApp() {
             onOpenXmlStudio={() => navigate('/studio')}
             onOpenPolicy={(tab) => navigate(`/policy/${tab}`)}
           />
+
+          {/* Slot 2: Footer Absolute Bottom Ad */}
+          <div className="w-full max-w-5xl mx-auto px-4 pb-6">
+            <AdSlotRenderer slotKey="footerBottomBanner" />
+          </div>
         </>
       )}
 

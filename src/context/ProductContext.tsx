@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, cleanFirestoreData, OperationType } from '../lib/firebase';
+import { db, handleFirestoreError, prepareProductPayloadForFirestore, OperationType } from '../lib/firebase';
 import { Product } from '../types';
 
 export interface ProductContextType {
@@ -43,7 +43,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const saveProduct = useCallback(async (product: Product): Promise<void> => {
     const strId = String(product.id);
-    const cleanedProduct = cleanFirestoreData(product);
+    const cleanedProduct = prepareProductPayloadForFirestore(product);
     try {
       await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
     } catch (error) {

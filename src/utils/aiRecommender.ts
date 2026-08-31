@@ -18,7 +18,11 @@ export function scoreProductRelevance(product: Product, userProfile: AIUserProfi
   const viewedCategories = userProfile.viewedCategories || {};
   const viewedTags = userProfile.viewedTags || [];
 
-  const productText = `${product.title} ${product.category} ${product.description || ''} ${(product.tags || []).join(' ')}`.toLowerCase();
+  const safeProductTags = Array.isArray(product.tags) 
+    ? product.tags.join(' ') 
+    : (typeof product.tags === 'string' ? product.tags : '');
+
+  const productText = `${product.title} ${product.category} ${product.description || ''} ${safeProductTags}`.toLowerCase();
 
   // 1. Category frequency weight
   if (viewedCategories[product.category]) {
@@ -126,8 +130,10 @@ function fallbackRank(query: string, products: Product[]): Product[] {
     let scoreA = 0;
     let scoreB = 0;
 
-    const textA = `${a.title} ${a.category} ${a.description || ''} ${(a.tags || []).join(' ')}`.toLowerCase();
-    const textB = `${b.title} ${b.category} ${b.description || ''} ${(b.tags || []).join(' ')}`.toLowerCase();
+    const tagsA = Array.isArray(a.tags) ? a.tags.join(' ') : (typeof a.tags === 'string' ? a.tags : '');
+    const tagsB = Array.isArray(b.tags) ? b.tags.join(' ') : (typeof b.tags === 'string' ? b.tags : '');
+    const textA = `${a.title} ${a.category} ${a.description || ''} ${tagsA}`.toLowerCase();
+    const textB = `${b.title} ${b.category} ${b.description || ''} ${tagsB}`.toLowerCase();
 
     if (textA.includes(lowerQuery)) scoreA += 10;
     if (textB.includes(lowerQuery)) scoreB += 10;

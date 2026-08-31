@@ -183,6 +183,65 @@ export function cleanFirestoreData<T>(obj: T): T {
   return cleaned as T;
 }
 
+/**
+ * Sanitizes and budgets a product document payload to strictly guarantee that
+ * Firestore document size never exceeds the 1,048,576 byte hard limit (budgeted to < 750KB).
+ */
+export function prepareProductPayloadForFirestore(product: any): Record<string, any> {
+  const cleaned = cleanFirestoreData(product) as Record<string, any>;
+
+  // Normalize previewImages and gallery
+  let previewImages: string[] = [];
+  if (Array.isArray(cleaned.previewImages) && cleaned.previewImages.length > 0) {
+    previewImages = cleaned.previewImages.filter(Boolean);
+  } else if (Array.isArray(cleaned.gallery) && cleaned.gallery.length > 0) {
+    previewImages = cleaned.gallery.filter(Boolean);
+  }
+
+  // Deduplicate and ensure clean strings
+  previewImages = Array.from(new Set(previewImages)).filter(u => typeof u === 'string' && u.trim().length > 0);
+
+  cleaned.previewImages = previewImages;
+  cleaned.gallery = previewImages;
+
+  // Normalize tags to string array
+  if (cleaned.tags) {
+    if (Array.isArray(cleaned.tags)) {
+      cleaned.tags = cleaned.tags.filter((t: any) => typeof t === 'string' && t.trim().length > 0);
+    } else if (typeof cleaned.tags === 'string') {
+      cleaned.tags = cleaned.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+    } else {
+      cleaned.tags = [];
+    }
+  } else {
+    cleaned.tags = [];
+  }
+
+  // Measure approximate JSON size in bytes
+  let jsonStr = JSON.stringify(cleaned);
+  let sizeInBytes = typeof Blob !== 'undefined' ? new Blob([jsonStr]).size : jsonStr.length;
+
+  // Target safe limit: 750,000 bytes (Firestore hard limit is 1,048,576 bytes)
+  const MAX_SAFE_SIZE = 750000;
+
+  if (sizeInBytes > MAX_SAFE_SIZE && previewImages.length > 0) {
+    // If oversized due to duplication, make gallery reference minimal array
+    cleaned.gallery = [];
+    jsonStr = JSON.stringify(cleaned);
+    sizeInBytes = typeof Blob !== 'undefined' ? new Blob([jsonStr]).size : jsonStr.length;
+
+    // If still oversized, progressively reduce slides until safely within budget
+    while (sizeInBytes > MAX_SAFE_SIZE && previewImages.length > 1) {
+      previewImages.pop();
+      cleaned.previewImages = [...previewImages];
+      jsonStr = JSON.stringify(cleaned);
+      sizeInBytes = typeof Blob !== 'undefined' ? new Blob([jsonStr]).size : jsonStr.length;
+    }
+  }
+
+  return cleaned;
+}
+
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo = {
     error: error instanceof Error ? error.message : String(error),

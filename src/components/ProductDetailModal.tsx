@@ -5,7 +5,7 @@ import { Product, Currency } from '../types';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { ProductCard } from './ProductCard';
-import { navigateTo } from '../router';
+import { navigateTo, getProductSlug } from '../router';
 import { formatDirectImageUrl } from '../utils/formatImageUrl';
 import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import { useAuth } from '../context/AuthContext';
@@ -141,7 +141,9 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
 
           const localTags = localStorage.getItem('fm_anon_tags');
           let tagsArr: string[] = localTags ? JSON.parse(localTags) : [];
-          const productTags = product.tags || [];
+          const productTags = Array.isArray(product.tags) 
+            ? product.tags 
+            : (typeof product.tags === 'string' ? (product.tags as string).split(',').map(t => t.trim()).filter(Boolean) : []);
           productTags.forEach(t => {
             if (!tagsArr.includes(t)) {
               tagsArr.push(t);
@@ -162,15 +164,23 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
         if (currentUser) {
           try {
             const userDocRef = doc(db, 'users', currentUser.uid);
-            await updateDoc(userDocRef, {
+            const validTags = Array.isArray(product.tags) 
+              ? product.tags.filter(Boolean) 
+              : (typeof product.tags === 'string' ? (product.tags as string).split(',').map(t => t.trim()).filter(Boolean) : []);
+            
+            const updatePayload: Record<string, any> = {
               recentInterests: arrayUnion(product.category),
-              recentTags: arrayUnion(...(product.tags || [])),
               lastViewedProductId: product.id,
               updatedAt: new Date().toISOString()
-            });
+            };
+            if (validTags.length > 0) {
+              updatePayload.recentTags = arrayUnion(...validTags);
+            }
+
+            await updateDoc(userDocRef, updatePayload);
             
             setUserInterests(prev => Array.from(new Set([...prev, product.category])));
-            setUserTags(prev => Array.from(new Set([...prev, ...(product.tags || [])])));
+            setUserTags(prev => Array.from(new Set([...prev, ...validTags])));
             setLastViewedId(product.id);
           } catch (err) {
             console.warn("Failed to update user browse history in Firestore:", err);
@@ -478,11 +488,17 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
         return product.seoKeywords.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
-    if (product.tags && product.tags.length > 0) {
-      return product.tags;
+    if (product.tags) {
+      if (Array.isArray(product.tags) && product.tags.length > 0) return product.tags;
+      if (typeof product.tags === 'string' && (product.tags as string).trim().length > 0) {
+        return (product.tags as string).split(',').map(s => s.trim()).filter(Boolean);
+      }
     }
-    if (product.keywords && product.keywords.length > 0) {
-      return product.keywords;
+    if (product.keywords) {
+      if (Array.isArray(product.keywords) && product.keywords.length > 0) return product.keywords;
+      if (typeof product.keywords === 'string' && (product.keywords as string).trim().length > 0) {
+        return (product.keywords as string).split(',').map(s => s.trim()).filter(Boolean);
+      }
     }
     return generateSeoKeywordCluster(product.title, product.category, product.description).keywordsList;
   }, [product]);
@@ -490,16 +506,7 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
   return (
     <div className="w-full max-w-full px-0 sm:px-4 md:px-6 py-0 sm:py-4 space-y-0 sm:space-y-6 pb-12 sm:pb-16 animate-in fade-in duration-200">
       
-      {/* Hidden Semantic Index Block for Google & Search Engine Crawlers */}
-      <div aria-hidden="true" className="sr-only opacity-0 pointer-events-none select-none h-0 overflow-hidden">
-        <h2>{product.title} - FileMarket.site Enterprise Index</h2>
-        <p>{product.description}</p>
-        <ul>
-          {activeSeoKeywords.map((kw, i) => (
-            <li key={i}>{kw}</li>
-          ))}
-        </ul>
-      </div>
+      {/* Removed Hidden Semantic Index Block as requested */}
 
       {/* Main Product Details Card Container */}
       <div className="rounded-none sm:rounded-3xl bg-white dark:bg-[#0B1120] border-0 sm:border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-sm sm:shadow-2xl p-0 sm:p-8 transition-colors duration-200 overflow-hidden">
@@ -520,7 +527,9 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setShowVideoModal(true)}
+                onClick={() => {
+                  navigateTo(`/preview/${getProductSlug(product)}`, { title: `Watch Preview: ${product.title} — FileMarket` });
+                }}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
               >
                 <div className="w-3.5 h-3.5 rounded-full bg-white/20 flex items-center justify-center">
@@ -713,74 +722,6 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
             </div>
           </div>
 
-        {/* 1. PRODUCT SPECIFICATION CARDS */}
-        <div className="space-y-3 pt-1">
-          <h3 className="font-heading text-xs uppercase font-bold tracking-widest text-slate-500 dark:text-gray-400 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Product Specifications &amp; Compatibility</span>
-          </h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-            {/* Spec 1: File Size or Delivery Time */}
-            <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-md hover:border-emerald-500/40 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-all duration-300 flex items-center gap-3.5 group shadow-xs">
-              <div className="w-[38px] h-[38px] rounded-[10px] bg-gradient-to-br from-emerald-500/15 to-cyan-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.15)] group-hover:scale-105 transition-transform">
-                {product.type === 'service' || product.category === 'Digital Services' ? (
-                  <Clock className="w-4 h-4" />
-                ) : (
-                  <HardDrive className="w-4 h-4" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400">
-                  {product.type === 'service' || product.category === 'Digital Services' ? 'Estimated Delivery' : 'File Package Size'}
-                </span>
-                <span className="text-sm font-medium text-slate-900 dark:text-white truncate block">
-                  {product.type === 'service' || product.category === 'Digital Services' ? (product.deliveryTime || '24–48 Hours') : product.fileSize}
-                </span>
-              </div>
-            </div>
-
-            {/* Spec 2: Software / Format */}
-            <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-md hover:border-cyan-500/40 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-all duration-300 flex items-center gap-3.5 group shadow-xs">
-              <div className="w-[38px] h-[38px] rounded-[10px] bg-gradient-to-br from-cyan-500/15 to-emerald-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(6,182,212,0.15)] group-hover:scale-105 transition-transform">
-                <FileCode className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400">Software / Format</span>
-                <span className="text-sm font-medium text-slate-900 dark:text-white truncate block">{product.softwareFormat || product.fileFormat || 'APK / DNG Presets'}</span>
-              </div>
-            </div>
-
-            {/* Spec 3: License & Security */}
-            <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-md hover:border-emerald-500/40 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-all duration-300 flex items-center gap-3.5 group shadow-xs">
-              <div className="w-[38px] h-[38px] rounded-[10px] bg-gradient-to-br from-emerald-500/15 to-teal-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.15)] group-hover:scale-105 transition-transform">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400">License Terms</span>
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-wider">
-                    <ShieldCheck className="w-2.5 h-2.5" />
-                    Verified Scanned
-                  </span>
-                </div>
-                <span className="text-sm font-medium text-slate-900 dark:text-white truncate block mt-0.5">{product.licenseTerms || product.license || product.cardSubtitle || 'Lifetime VIP Access'}</span>
-              </div>
-            </div>
-
-            {/* Spec 4: Release Date */}
-            <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-md hover:border-amber-500/40 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-all duration-300 flex items-center gap-3.5 group shadow-xs">
-              <div className="w-[38px] h-[38px] rounded-[10px] bg-gradient-to-br from-amber-500/15 to-emerald-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.15)] group-hover:scale-105 transition-transform">
-                <Calendar className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400">Release Date</span>
-                <span className="text-sm font-medium text-slate-900 dark:text-white truncate block">{product.releaseDate || product.updatedDate || 'August 2026'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* 2. MONEY-BACK GUARANTEE BADGE (DIGITAL PRODUCTS) */}
         {guaranteeSettings.guarantee.isEnabled && (
           <div className="relative overflow-hidden rounded-2xl p-4 sm:p-5 my-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 text-slate-800 dark:text-slate-200 shadow-sm group">
@@ -815,6 +756,7 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
           </div>
         )}
 
+
         {/* 4. Dynamic Recommendation Engine / Similar Products */}
         <div id="recommended-section" className="mt-8 pt-6 border-t border-slate-200/80 dark:border-slate-800/80">
           <div className="flex items-center justify-between mb-4">
@@ -822,9 +764,6 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
               <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <span>📦 You May Also Like</span>
               </h3>
-              <p className="text-xs text-slate-500 dark:text-gray-400">
-                Hand-picked verified assets related to {product.category}
-              </p>
             </div>
           </div>
 
@@ -852,46 +791,7 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
           )}
         </div>
 
-        {/* DYNAMIC SEO KEYWORD & SEARCH TAGS CLOUD */}
-        {activeSeoKeywords && activeSeoKeywords.length > 0 && (
-          <div className="w-full my-8 p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 shadow-sm transition-colors">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-500 font-bold text-sm">🔍</span>
-                <h4 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  Related Search Keywords &amp; Index Tags
-                </h4>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                AI SEO Indexed
-              </span>
-            </div>
-
-            {/* Keywords Tags Cloud */}
-            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-              {(Array.isArray(activeSeoKeywords) 
-                ? activeSeoKeywords 
-                : (activeSeoKeywords as string).split(',')
-              ).map((keyword, index) => {
-                const cleanTag = typeof keyword === 'string' ? keyword.trim() : String(keyword);
-                if (!cleanTag) return null;
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => {
-                      navigateTo(`/?search=${encodeURIComponent(cleanTag)}`);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 border border-slate-200/80 dark:border-slate-700/60 hover:border-emerald-400/40 transition-all cursor-pointer shadow-xs active:scale-95"
-                  >
-                    #{cleanTag}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Removed DYNAMIC SEO KEYWORD & SEARCH TAGS CLOUD as requested */}
 
         </div>
       </div>

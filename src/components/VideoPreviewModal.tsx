@@ -64,11 +64,6 @@ export const VideoPreviewModal: React.FC<VideoPreviewModalProps> = ({
     downloadsCount: 1500
   };
 
-  const adsConfig = globalConfig?.previewVideoAds || DEFAULT_GLOBAL_CONFIG.previewVideoAds!;
-  const isAdsEnabled = adsConfig.enabled ?? true;
-  const topAd = adsConfig.topBannerAd || DEFAULT_GLOBAL_CONFIG.previewVideoAds!.topBannerAd;
-  const bottomAd = adsConfig.bottomNativeAd || DEFAULT_GLOBAL_CONFIG.previewVideoAds!.bottomNativeAd;
-
   const salePrice = effectiveProduct.priceBDT || 299;
   const regPrice = effectiveProduct.originalPriceBDT || (salePrice * 2);
   const discountPercent = Math.max(10, Math.round(((regPrice - salePrice) / regPrice) * 100));
@@ -110,80 +105,11 @@ export const VideoPreviewModal: React.FC<VideoPreviewModalProps> = ({
 
         {/* Scrollable Modal Body */}
         <div className="overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
-          {/* Top Banner Ad */}
-          {isAdsEnabled && topAd?.enabled && topAd.targetUrl && (
-            <div className="w-full bg-gradient-to-r from-slate-100 to-emerald-50/50 dark:from-slate-950/90 dark:to-slate-900 border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 text-center shadow-xs">
-              <a
-                href={topAd.targetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between gap-3 group"
-              >
-                <div className="text-left overflow-hidden flex-1">
-                  <div className="font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-500 transition-colors text-xs">
-                    {topAd.title || 'Advertisement'}
-                  </div>
-                  {topAd.subtext && (
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                      {topAd.subtext}
-                    </p>
-                  )}
-                </div>
-                <div className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white font-black text-[10px] flex items-center gap-1 shrink-0">
-                  <span>{topAd.ctaText || 'Get Offer'}</span>
-                  <ExternalLink className="w-3 h-3" />
-                </div>
-              </a>
-            </div>
-          )}
-
-          {/* Interactive Carousel & Bundle Specifications */}
+          {/* Interactive Carousel, Live Demo Button & Bundle Specifications */}
           <WatchPreviewCarousel
             product={effectiveProduct}
             onInstantBuy={onInstantBuy}
           />
-
-          {/* External Live Demo Website Link */}
-          {(previewWebsiteUrl || effectiveProduct.previewWebsiteUrl) && (
-            <div className="w-full pt-1">
-              <a
-                href={previewWebsiteUrl || effectiveProduct.previewWebsiteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-black text-sm tracking-wide shadow-lg shadow-teal-900/20 active:scale-98 transition cursor-pointer"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>🌐 Open Full Interactive Live Demo Website ↗</span>
-              </a>
-            </div>
-          )}
-
-          {/* Bottom Sponsored Ad */}
-          {isAdsEnabled && bottomAd?.enabled && bottomAd.targetUrl && (
-            <div className="w-full bg-gradient-to-r from-slate-100 to-teal-50/50 dark:from-slate-950/90 dark:to-slate-900 border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 text-center shadow-xs">
-              <a
-                href={bottomAd.targetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between gap-3 group"
-              >
-                <div className="text-left overflow-hidden flex-1">
-                  <div className="font-bold text-slate-900 dark:text-white truncate group-hover:text-teal-400 transition-colors text-xs">
-                    {bottomAd.title || 'Sponsored Offer'}
-                  </div>
-                  {bottomAd.subtext && (
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                      {bottomAd.subtext}
-                    </p>
-                  )}
-                </div>
-                <div className="px-3 py-1.5 rounded-lg bg-teal-500 text-slate-950 font-black text-[10px] flex items-center gap-1 shrink-0">
-                  <span>{bottomAd.ctaText || 'Claim Offer'}</span>
-                  <ExternalLink className="w-3 h-3" />
-                </div>
-              </a>
-            </div>
-          )}
         </div>
 
         {/* Direct Sticky Purchase Action Footer */}
