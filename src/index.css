@@ -137,6 +137,38 @@
   animation: radiantLightPulse 3.5s ease-in-out infinite;
 }
 
+@keyframes brandGradientShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-brand-gradient {
+  background-size: 200% 200%;
+  animation: brandGradientShimmer 4s ease infinite;
+}
+
+@keyframes brandAmbientFloat {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.02);
+  }
+}
+
+.animate-brand-ambient {
+  animation: brandAmbientFloat 4s ease-in-out infinite;
+}
+
 @keyframes brandShimmerGlow {
   0%, 100% {
     filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.2));

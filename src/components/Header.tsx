@@ -89,19 +89,16 @@ export const Header: React.FC<HeaderProps> = memo(({
             )}
           </div>
 
-          {/* Large Bold Brand Name with Smooth Radiant Backlight Light Glow */}
-          <div className="relative flex items-center text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-[2.6rem] font-black tracking-tight select-none leading-none truncate">
-            {/* Radiant Ambient Light Beam Aura behind Text */}
-            <div className="absolute -inset-x-3 sm:-inset-x-4 -inset-y-2 rounded-2xl bg-gradient-to-r from-emerald-500/35 via-teal-400/30 to-cyan-400/25 blur-md sm:blur-xl opacity-65 dark:opacity-80 animate-radiant-pulse pointer-events-none transition-all duration-500 group-hover:opacity-100 group-hover:blur-2xl" />
-
+          {/* Large Bold Brand Name */}
+          <div className="relative flex items-center font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-[2.6rem] font-black tracking-tight select-none leading-none truncate py-1">
             {/* First Part of Brand Name */}
-            <span className="relative z-10 text-slate-900 dark:text-white transition-all duration-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_0_16px_rgba(255,255,255,0.4)] group-hover:text-emerald-600 dark:group-hover:text-slate-100">
+            <span className="relative z-10 text-slate-900 dark:text-white transition-all duration-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-300">
               {brandFirst}
             </span>
 
-            {/* Second Part of Brand Name with Neon Emerald Glow */}
+            {/* Second Part of Brand Name with Animated Emerald Gradient */}
             {brandSecond && (
-              <span className="relative z-10 text-emerald-600 dark:text-emerald-400 ml-1 sm:ml-2 transition-all duration-300 drop-shadow-[0_0_18px_rgba(16,185,129,0.75)] dark:drop-shadow-[0_0_26px_rgba(52,211,153,0.95)] group-hover:brightness-125">
+              <span className="relative z-10 ml-1 sm:ml-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 bg-clip-text text-transparent animate-brand-gradient font-black transition-all duration-300 group-hover:brightness-110">
                 {brandSecond}
               </span>
             )}
