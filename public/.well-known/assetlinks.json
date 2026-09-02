@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "site.filemarket.app",
+        "sha256_cert_fingerprints": ["7F:E7:CA:D4:EC:C3:E9:C4:9B:57:06:D0:99:2D:01:10:03:80:6B:41:65:53:7D:72:91:04:38:DB:08:DF:10:1F"]
+      }
+    }]
