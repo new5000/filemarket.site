@@ -71,7 +71,7 @@ function MainApp() {
     return () => clearTimeout(timer);
   }, []);
 
-  const { products } = useProducts();
+  const { products, loading: isProductsLoading } = useProducts();
   const { route, navigate } = useAppRouter(products);
   const { savedProducts, toggleProduct: handleToggleSave } = useSavedProducts();
   const { currency, setCurrency, darkMode, setDarkMode, toggleTheme, globalConfig } = useGlobalSettings();
@@ -724,6 +724,7 @@ function MainApp() {
                     onViewDetails={handleOpenProductDetail}
                     savedProducts={savedProducts}
                     onToggleSave={handleToggleSave}
+                    isLoading={isProductsLoading || (products.length === 0 && isInitialLoading)}
                   />
                 </motion.div>
               )}

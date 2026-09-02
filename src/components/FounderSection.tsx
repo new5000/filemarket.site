@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, MessageCircle, X, ZoomIn } from 'lucide-react';
-import { useBrand } from '../context/BrandContext';
+import { useBrand, DEFAULT_FOUNDER_AVATAR } from '../context/BrandContext';
 import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import { handleDirectWhatsAppChat } from '../utils/whatsapp';
 
@@ -41,15 +41,16 @@ export const FounderSection: React.FC = () => {
 
               <div className="relative w-full h-full rounded-[22px] overflow-hidden bg-slate-900 backface-hidden shadow-[inset_0_4px_10px_rgba(0,0,0,0.4)]">
                 <img
-                  src={founderAvatarUrl}
+                  src={founderAvatarUrl || DEFAULT_FOUNDER_AVATAR}
                   alt={`${founderName} - ${founderBio}`}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover select-none pointer-events-auto [user-select:none] [-webkit-user-select:none] [-webkit-touch-callout:none] transition-transform duration-500 group-hover:scale-105"
                   referrerPolicy="no-referrer"
                   onContextMenu={(e) => e.preventDefault()}
                   onDragStart={(e) => e.preventDefault()}
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src =
-                      'https://i.ibb.co/vzR0h2M/default-avatar.png';
+                    (e.currentTarget as HTMLImageElement).src = DEFAULT_FOUNDER_AVATAR;
                   }}
                 />
                 {/* Anti-Theft Transparent Layer */}
@@ -67,7 +68,7 @@ export const FounderSection: React.FC = () => {
             </button>
 
             <div 
-              className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/80 text-white flex items-center gap-1.5 font-bold text-[10px] sm:text-xs shadow-lg shadow-black/40 pointer-events-none z-20 transform-gpu"
+              className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/80 text-white flex items-center gap-1.5 font-bold text-[10px] sm:text-xs shadow-lg shadow-black/40 pointer-events-none z-20 transform-gpu"
               style={{ animation: 'verifiedPulse 3s infinite ease-in-out' }}
             >
               <span className="text-emerald-400 font-black text-xs">✓</span>
@@ -114,6 +115,8 @@ export const FounderSection: React.FC = () => {
                 <img
                   src="https://lh3.googleusercontent.com/d/1941nw0eU_JIhKT_4QLuglzwuyDieb-jW"
                   alt="WhatsApp Icon"
+                  loading="lazy"
+                  decoding="async"
                   className="w-5 h-5 object-contain shrink-0"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
@@ -132,7 +135,7 @@ export const FounderSection: React.FC = () => {
       {/* Lightbox / Full Photo Modal */}
       {isPhotoModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 animate-fadeIn"
           onClick={() => setIsPhotoModalOpen(false)}
         >
           <div
@@ -143,7 +146,7 @@ export const FounderSection: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsPhotoModalOpen(false)}
-              className="absolute top-4 right-4 z-30 p-2 rounded-full bg-slate-800/90 text-slate-300 hover:text-white hover:bg-slate-700 transition"
+              className="absolute top-4 right-4 z-30 p-2 rounded-full bg-slate-800/90 text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -152,15 +155,16 @@ export const FounderSection: React.FC = () => {
             <div className="space-y-4">
               <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.3)] bg-slate-950 flex items-center justify-center">
                 <img
-                  src={founderAvatarUrl}
+                  src={founderAvatarUrl || DEFAULT_FOUNDER_AVATAR}
                   alt={`${founderName} - Full Resolution Official Photo`}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full max-h-[70vh] object-contain select-none pointer-events-auto [user-select:none] [-webkit-user-select:none] [-webkit-touch-callout:none]"
                   referrerPolicy="no-referrer"
                   onContextMenu={(e) => e.preventDefault()}
                   onDragStart={(e) => e.preventDefault()}
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src =
-                      'https://i.ibb.co/vzR0h2M/default-avatar.png';
+                    (e.currentTarget as HTMLImageElement).src = DEFAULT_FOUNDER_AVATAR;
                   }}
                 />
                 {/* Anti-Theft Shield */}

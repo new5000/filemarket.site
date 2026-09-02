@@ -203,12 +203,12 @@ export const SlideDrawer: React.FC<SlideDrawerProps> = ({
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 z-[99998] bg-black/60 transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       />
 
       {/* Slide-Out Drawer */}
-      <div className="fixed top-0 right-0 h-full w-full max-w-xs z-[99999] bg-white/98 dark:bg-[#0B0F19]/98 backdrop-blur-2xl border-l border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out animate-in slide-in-from-right">
+      <div className="fixed top-0 right-0 h-full w-full max-w-xs z-[99999] bg-white dark:bg-[#0B0F19] border-l border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out animate-in slide-in-from-right">
         
         {/* Drawer Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800/80">

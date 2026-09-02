@@ -6,7 +6,7 @@ import { PaymentGatewayLogo } from './icons/PaymentGatewayLogos';
 import { subscribePaymentSettings, DEFAULT_PAYMENT_SETTINGS, PaymentSettingsData } from '../lib/paymentService';
 import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import AnimatedBrandTitle from './AnimatedBrandTitle';
-import { useBrand } from '../context/BrandContext';
+import { useBrand, DEFAULT_FOUNDER_AVATAR } from '../context/BrandContext';
 import { handleDirectWhatsAppChat, getGeneralWhatsAppUrl } from '../utils/whatsapp';
 import { formatDirectImageUrl } from '../utils/formatImageUrl';
 import { AdSlotRenderer } from './ads/AdSlotRenderer';
@@ -67,15 +67,16 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
                   <div className="relative w-full h-full rounded-[22px] overflow-hidden bg-slate-900 backface-hidden shadow-[inset_0_4px_10px_rgba(0,0,0,0.4)]">
                     <img
-                      src={founderAvatarUrl}
+                      src={founderAvatarUrl || DEFAULT_FOUNDER_AVATAR}
                       alt={`${founderName} - ${founderBio}`}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover select-none pointer-events-auto [user-select:none] [-webkit-user-select:none] [-webkit-touch-callout:none] transition-transform duration-500 group-hover:scale-105"
                       referrerPolicy="no-referrer"
                       onContextMenu={(e) => e.preventDefault()}
                       onDragStart={(e) => e.preventDefault()}
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          'https://i.ibb.co/vzR0h2M/default-avatar.png';
+                        (e.currentTarget as HTMLImageElement).src = DEFAULT_FOUNDER_AVATAR;
                       }}
                     />
                     <div
@@ -91,7 +92,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
                 </button>
 
                 <div 
-                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/80 text-white flex items-center gap-1.5 font-bold text-[10px] sm:text-xs shadow-lg shadow-black/40 pointer-events-none z-20 transform-gpu"
+                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/80 text-white flex items-center gap-1.5 font-bold text-[10px] sm:text-xs shadow-lg shadow-black/40 pointer-events-none z-20 transform-gpu"
                   style={{ animation: 'verifiedPulse 3s infinite ease-in-out' }}
                 >
                   <span className="text-emerald-400 font-black text-xs">✓</span>
@@ -163,7 +164,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
       {/* Lightbox / Full Photo Modal */}
       {isPhotoModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 animate-fadeIn"
           onClick={() => setIsPhotoModalOpen(false)}
         >
           <div
@@ -174,7 +175,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
             <button
               type="button"
               onClick={() => setIsPhotoModalOpen(false)}
-              className="absolute top-4 right-4 z-30 p-2 rounded-full bg-slate-800/90 text-slate-300 hover:text-white hover:bg-slate-700 transition"
+              className="absolute top-4 right-4 z-30 p-2 rounded-full bg-slate-800/90 text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -183,15 +184,16 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
             <div className="space-y-4">
               <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.3)] bg-slate-950 flex items-center justify-center">
                 <img
-                  src={founderAvatarUrl}
+                  src={founderAvatarUrl || DEFAULT_FOUNDER_AVATAR}
                   alt={`${founderName} - Full Resolution Official Photo`}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full max-h-[70vh] object-contain select-none pointer-events-auto [user-select:none] [-webkit-user-select:none] [-webkit-touch-callout:none]"
                   referrerPolicy="no-referrer"
                   onContextMenu={(e) => e.preventDefault()}
                   onDragStart={(e) => e.preventDefault()}
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src =
-                      'https://i.ibb.co/vzR0h2M/default-avatar.png';
+                    (e.currentTarget as HTMLImageElement).src = DEFAULT_FOUNDER_AVATAR;
                   }}
                 />
                 {/* Anti-Theft Shield */}
@@ -302,12 +304,12 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
             Instant automated verification with official payment gateway channels.
           </p>
 
-          {/* Ultra-Modern Glassmorphism Payment Pills */}
+          {/* Ultra-Fast Clean Payment Pills */}
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
             
             {/* bKash Pill */}
             {paymentSettings.bkash?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-pink-500/30 hover:border-pink-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(209,32,83,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-pink-500/30 hover:border-pink-500/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="bkash" customLogo={paymentSettings.bkash?.customLogo} className="w-full h-full" />
                 </div>
@@ -317,7 +319,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* Nagad Pill */}
             {paymentSettings.nagad?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-orange-500/30 hover:border-orange-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(247,147,30,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-orange-500/30 hover:border-orange-500/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="nagad" customLogo={paymentSettings.nagad?.customLogo} className="w-full h-full" />
                 </div>
@@ -327,7 +329,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* Rocket Pill */}
             {paymentSettings.rocket?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-purple-500/30 hover:border-purple-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(140,52,148,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-purple-500/30 hover:border-purple-500/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="rocket" customLogo={paymentSettings.rocket?.customLogo} className="w-full h-full" />
                 </div>
@@ -337,7 +339,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* Upay Pill */}
             {paymentSettings.upay?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-blue-500/30 hover:border-blue-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(0,45,98,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-blue-500/30 hover:border-blue-500/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-[#002D62] flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="upay" customLogo={paymentSettings.upay?.customLogo} className="w-full h-full" />
                 </div>
@@ -347,7 +349,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* Binance Pay Pill */}
             {paymentSettings.binance?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-amber-400/30 hover:border-amber-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(240,185,11,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-amber-400/30 hover:border-amber-400/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-[#181A20] flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="binance" customLogo={paymentSettings.binance?.customLogo} className="w-full h-full" />
                 </div>
@@ -357,7 +359,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* Visa / Mastercard / Stripe Pill */}
             {paymentSettings.stripe?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-blue-400/30 hover:border-blue-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(59,130,246,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-blue-400/30 hover:border-blue-400/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="stripe" customLogo={paymentSettings.stripe?.customLogo} className="w-full h-full" />
                 </div>
@@ -367,7 +369,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* PayPal Pill */}
             {paymentSettings.paypal?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-sky-400/30 hover:border-sky-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(0,112,186,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-sky-400/30 hover:border-sky-400/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="paypal" customLogo={paymentSettings.paypal?.customLogo} className="w-full h-full" />
                 </div>
@@ -377,7 +379,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* Shurjopay Pill */}
             {paymentSettings.shurjopay?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-orange-500/30 hover:border-orange-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(235,90,40,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-orange-500/30 hover:border-orange-500/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="shurjopay" customLogo={paymentSettings.shurjopay?.customLogo} className="w-full h-full" />
                 </div>
@@ -387,7 +389,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* SSLCommerz Pill */}
             {paymentSettings.sslcommerz?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-red-500/30 hover:border-red-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(227,27,35,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-red-500/30 hover:border-red-500/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="sslcommerz" customLogo={paymentSettings.sslcommerz?.customLogo} className="w-full h-full" />
                 </div>
@@ -397,7 +399,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* AamarPay Pill */}
             {paymentSettings.aamarpay?.enabled && (
-              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-cyan-500/30 hover:border-cyan-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(10,136,186,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-cyan-500/30 hover:border-cyan-500/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId="aamarpay" customLogo={paymentSettings.aamarpay?.customLogo} className="w-full h-full" />
                 </div>
@@ -407,7 +409,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
 
             {/* Custom Gateways */}
             {paymentSettings.customGateways?.filter(g => g.enabled).map(customGw => (
-              <div key={customGw.id} className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-emerald-500/30 hover:border-emerald-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(16,185,129,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+              <div key={customGw.id} className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 hover:border-emerald-500/80 shadow-xs transition-all duration-200 cursor-default">
                 <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
                   <PaymentGatewayLogo gatewayId={customGw.id} customLogo={customGw.iconUrl} name={customGw.name} className="w-full h-full rounded-full" />
                 </div>

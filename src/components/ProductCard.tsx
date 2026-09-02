@@ -73,7 +73,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     <article
       id={`product-card-${product.id}`}
       onClick={handleCardClick}
-      className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-lg border border-slate-100 dark:border-slate-800 transition-all duration-300 flex flex-col justify-between group relative cursor-pointer"
+      className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-lg border border-slate-100 dark:border-slate-800 transition-all duration-300 flex flex-col justify-between group relative cursor-pointer content-visibility-auto gpu-layer"
     >
       {/* Upper Content Wrap */}
       <div>

@@ -73,7 +73,30 @@ export const ProductGrid: React.FC<ProductGridProps> = React.memo(({
       {isLoading ? (
         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 w-full">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="aspect-[3/4] rounded-3xl bg-slate-100 dark:bg-slate-800/50 animate-pulse border border-slate-200 dark:border-slate-800" />
+            <div
+              key={`skeleton-${i}`}
+              className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 border border-slate-100 dark:border-slate-800 animate-pulse flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <div className="aspect-video w-full rounded-xl bg-slate-200 dark:bg-slate-800 mb-2.5" />
+                <div className="flex items-center justify-between my-1.5">
+                  <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="h-3 w-12 bg-slate-200 dark:bg-slate-800 rounded" />
+                </div>
+                <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded mt-2 mb-1" />
+                <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-800 rounded" />
+              </div>
+              <div className="pt-2.5 mt-auto border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                <div className="space-y-1">
+                  <div className="h-2 w-12 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800" />
+                  <div className="w-16 h-8 rounded-xl bg-slate-200 dark:bg-slate-800" />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : displayedProducts && displayedProducts.length > 0 ? (

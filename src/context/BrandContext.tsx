@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { DEFAULT_FOUNDER_AVATAR, DEFAULT_USER_AVATAR } from '../utils/formatImageUrl';
 
 export interface BrandContextType {
   logoUrl: string;
@@ -18,7 +19,7 @@ export interface BrandContextType {
 
 const DEFAULT_LOGO = "https://lh3.googleusercontent.com/d/1KkNKkG7Y06W8a_d8Efc7PBMiiQkzxG10";
 const DEFAULT_BRAND_NAME = "FileMarket";
-const DEFAULT_FOUNDER_AVATAR = "https://i.ibb.co/vzR0h2M/default-avatar.png";
+export { DEFAULT_FOUNDER_AVATAR, DEFAULT_USER_AVATAR };
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
 

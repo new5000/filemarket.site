@@ -5,6 +5,7 @@
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
   }
 
   html {
@@ -18,7 +19,8 @@
     box-sizing: border-box;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    overscroll-behavior-y: none;
     margin: 0;
     padding: 0;
   }
@@ -50,12 +52,11 @@
   -webkit-transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  perspective: 1000px;
 }
 
 .content-visibility-auto {
   content-visibility: auto;
-  contain-intrinsic-size: 0 380px;
+  contain-intrinsic-size: 280px;
 }
 
 .no-scrollbar::-webkit-scrollbar {
