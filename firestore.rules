@@ -55,20 +55,20 @@ service cloud.firestore {
 
     // Products Collection (Publicly readable, writable for admin and demo)
     match /products/{productId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if true; // Public catalog details only
+      allow write: if request.auth != null && (request.auth.token.admin == true || isAdmin());
     }
 
     // Deleted Products Collection (For real-time deletion sync across entire website and all devices)
     match /deleted_products/{productId} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null && (request.auth.token.admin == true || isAdmin());
     }
 
     // Orders Collection (Customer write/read, admin manage)
     match /orders/{orderId} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if true;
+      allow read: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.token.admin == true || isAdmin());
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (request.auth.token.admin == true || isAdmin());
     }
 
     // Settings Collection (Public read, admin/authenticated write)

@@ -12,6 +12,8 @@ import { useBrand } from '../context/BrandContext';
 import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import { LanguageSelector } from './LanguageSelector';
 
+import { PWAInstallButton } from './PWAInstallButton';
+
 interface SlideDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -542,6 +544,64 @@ export const SlideDrawer: React.FC<SlideDrawerProps> = ({
                   <span>Night</span>
                 </button>
               </div>
+            </div>
+
+            {/* 100% Mobile-Friendly Play Store App Card */}
+            {supportLinks?.playStoreEnabled && supportLinks?.playStoreUrl && (
+              <div className="mt-4 px-1">
+                <div className="w-full p-3.5 sm:p-4 rounded-2xl border transition-all shadow-sm
+                  bg-slate-50 hover:bg-slate-100/80 border-slate-200/90 text-slate-900
+                  dark:bg-slate-850 dark:hover:bg-slate-800 dark:border-slate-800 dark:text-white"
+                >
+                  {/* Row 1: App Identity (Zero Truncation) */}
+                  <div className="flex items-center gap-3 mb-3">
+                    {/* Play Store Logo Container */}
+                    <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 p-2 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 shadow-xs">
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none">
+                        <path d="M3.609 1.814L13.792 12 3.61 22.186c-.347-.282-.56-.71-.56-1.186V3c0-.476.213-.904.56-1.186z" fill="#00D3FF"/>
+                        <path d="M17.186 8.607L13.792 12l3.394 3.393 3.86-2.227c.75-.434.75-1.701 0-2.134l-3.86-2.425z" fill="#FFCE00"/>
+                        <path d="M3.609 1.814L17.186 8.607 13.792 12 3.61 1.814z" fill="#00F076"/>
+                        <path d="M13.792 12l3.394 3.393L3.61 22.186 13.792 12z" fill="#FF3A44"/>
+                      </svg>
+                    </div>
+
+                    {/* Brand & Subtitle */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white tracking-tight truncate">
+                          FileMarket Official App
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        Fast Downloads & Instant Access
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Full-Width High-Converting Install CTA Button */}
+                  <a
+                    href={supportLinks.playStoreUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 active:scale-[0.98] text-white text-xs sm:text-sm font-black rounded-xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M3.609 1.814L13.792 12 3.61 22.186c-.347-.282-.56-.71-.56-1.186V3c0-.476.213-.904.56-1.186z" fill="#00D3FF"/>
+                      <path d="M17.186 8.607L13.792 12l3.394 3.393 3.86-2.227c.75-.434.75-1.701 0-2.134l-3.86-2.425z" fill="#FFCE00"/>
+                      <path d="M3.609 1.814L17.186 8.607 13.792 12 3.61 1.814z" fill="#00F076"/>
+                      <path d="M13.792 12l3.394 3.393L3.61 22.186 13.792 12z" fill="#FF3A44"/>
+                    </svg>
+                    <span>Install on Google Play</span>
+                    <span className="text-xs">⬇</span>
+                  </a>
+
+                </div>
+              </div>
+            )}
+            
+            {/* PWA Install Button (Fallback/Alternative to Play Store) */}
+            <div className="mt-4 px-1">
+              <PWAInstallButton className="w-full justify-center py-3" />
             </div>
           </div>
 

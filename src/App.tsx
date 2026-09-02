@@ -49,8 +49,37 @@ import BloggerXmlStudioModal from './components/BloggerXmlStudioModal';
 import { WatchPreviewPage } from './components/WatchPreviewPage';
 import { CartDrawer } from './components/CartDrawer';
 import { CustomPageView } from './components/CustomPageView';
+import { PlayStoreBanner } from './components/PlayStoreBanner';
 
 function MainApp() {
+  // Global Frontend Source Protection & DevTools Deterrent
+  useEffect(() => {
+    // Prevent context menu (right click) on media and cards
+    const handleContextMenu = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).tagName === 'IMG' || (e.target as HTMLElement).closest('.protected-asset')) {
+        e.preventDefault();
+      }
+    };
+
+    // Block basic inspect shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.ctrlKey && (e.key === 'u' || e.key === 's'))
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   // Real-time live presence tracking across all visitors & tabs
   useLivePresence();
 
@@ -74,7 +103,7 @@ function MainApp() {
   const { products, loading: isProductsLoading } = useProducts();
   const { route, navigate } = useAppRouter(products);
   const { savedProducts, toggleProduct: handleToggleSave } = useSavedProducts();
-  const { currency, setCurrency, darkMode, setDarkMode, toggleTheme, globalConfig } = useGlobalSettings();
+  const { currency, setCurrency, darkMode, setDarkMode, toggleTheme, globalConfig, supportLinks } = useGlobalSettings();
 
   const rawMaintenanceMode = Boolean(
     globalConfig.maintenance || 
@@ -275,7 +304,7 @@ function MainApp() {
 
       case 'checkout': {
         const slug = route.params?.slug || route.params?.id || '';
-        const targetProduct = route.product || (slug ? findProductBySlugOrId(slug, products || []) : null) || products?.[0];
+        const targetProduct = slug ? (route.product || findProductBySlugOrId(slug, products || []) || null) : (route.product || null);
         
         const authStatus = getAuthStatus();
         const isUserAuthed = authStatus.isLoggedIn || Boolean(auth.currentUser);
@@ -300,6 +329,8 @@ function MainApp() {
         setDetailProduct(null);
         if (targetProduct) {
           document.title = `Checkout: ${targetProduct.title} — FileMarket`;
+        } else {
+          document.title = 'Universal Cart Checkout — FileMarket';
         }
         break;
       }
@@ -559,10 +590,10 @@ function MainApp() {
             onToggleTheme={toggleTheme}
             onNavigateAdmin={() => navigate('/admin')}
           />
-        ) : checkoutProduct ? (
+        ) : (checkoutProduct || route.name === 'checkout') ? (
           <ProtectedRoute>
             <CheckoutPage
-              product={checkoutProduct}
+              product={checkoutProduct || undefined}
               currency={currency}
               onBack={() => {
                 if (checkoutProduct) {
@@ -858,6 +889,12 @@ function MainApp() {
           </div>
         </div>
       )}
+
+      {/* Floating Smart App Banner */}
+      <PlayStoreBanner
+        enabled={Boolean(supportLinks?.playStoreEnabled)}
+        appUrl={supportLinks?.playStoreUrl || ''}
+      />
     </div>
     </Suspense>
   );

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, prepareProductPayloadForFirestore, OperationType } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth, handleFirestoreError, prepareProductPayloadForFirestore, OperationType } from '../lib/firebase';
 import { Product } from '../types';
 
 export interface ProductContextType {
@@ -19,25 +20,47 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Active Real-Time Listener strictly on Firestore 'products'
   useEffect(() => {
-    const unsubProducts = onSnapshot(
-      collection(db, 'products'),
-      (snapshot) => {
-        const firestoreList = snapshot.docs.map(
-          (d) => ({ id: d.id, ...d.data() } as Product)
-        );
-        // We do NOT filter drafts here so that the Admin Panel sees them.
-        // Frontend filtering handles drafts appropriately in App.tsx.
-        setProducts(firestoreList);
-        setLoading(false);
-      },
-      (error) => {
-        console.warn('Realtime products listener error:', error);
-        setLoading(false);
-      }
-    );
+    let unsubProducts: (() => void) | null = null;
+
+    const setupListener = (isAdmin: boolean) => {
+      if (unsubProducts) unsubProducts();
+      unsubProducts = onSnapshot(
+        collection(db, 'products'),
+        (snapshot) => {
+          const firestoreList = snapshot.docs.map(
+            (d) => {
+              const data = d.data();
+              if (isAdmin) {
+                return { id: d.id, ...data } as Product;
+              } else {
+                // Bank-Grade Security: Strictly isolate private download URLs from public payloads
+                const { downloadUrl, instantDownloadLink, driveUrl, driveLink, cloudDriveUrl, cloudAccessLink, ...publicData } = data;
+                return { id: d.id, ...publicData } as Product;
+              }
+            }
+          );
+          // We do NOT filter drafts here so that the Admin Panel sees them.
+          // Frontend filtering handles drafts appropriately in App.tsx.
+          setProducts(firestoreList);
+          setLoading(false);
+        },
+        (error) => {
+          console.warn('Realtime products listener error:', error);
+          setLoading(false);
+        }
+      );
+    };
+
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      const masterAdminEmail = localStorage.getItem('fm_master_admin_email') || 'new144506@gmail.com';
+      const currentEmail = user?.email?.toLowerCase().trim() || '';
+      const isAdmin = Boolean(user && currentEmail === masterAdminEmail.toLowerCase().trim());
+      setupListener(isAdmin);
+    });
 
     return () => {
-      unsubProducts();
+      unsubAuth();
+      if (unsubProducts) unsubProducts();
     };
   }, []);
 

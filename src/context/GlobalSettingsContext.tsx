@@ -19,9 +19,12 @@ export interface GeneralConfigData {
   siteTagline?: string;
   siteDescription?: string;
   physicalAddress?: string;
+  supportEmail?: string;
   headerLogoUrl?: string;
   faviconUrl?: string;
   founderAvatarUrl?: string;
+  playStoreEnabled?: boolean;
+  playStoreUrl?: string;
   imageSizes?: {
     logoWidth?: number;
     logoHeight?: number;
@@ -71,7 +74,7 @@ interface GlobalSettingsContextType {
   globalConfig: GlobalConfig;
   paymentMethods: PaymentMethodsData | null;
   generalConfig: GeneralConfigData | null;
-  supportLinks: { whatsappNumber: string; telegramLink: string } | null;
+  supportLinks: { whatsappNumber: string; telegramLink: string; supportEmail?: string; playStoreEnabled?: boolean; playStoreUrl?: string } | null;
   heroBanners: HeroBannersData | null;
   productGuarantee: ProductGuaranteeData | null;
 }
@@ -162,7 +165,10 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
         const data = docSnap.data();
         setSupportLinks({
           whatsappNumber: data.whatsappNumber || '',
-          telegramLink: data.telegramLink || ''
+          telegramLink: data.telegramLink || '',
+          supportEmail: data.supportEmail || '',
+          playStoreEnabled: data.playStoreEnabled ?? false,
+          playStoreUrl: data.playStoreUrl || ''
         });
       }
     }, (error) => {

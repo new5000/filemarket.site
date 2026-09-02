@@ -23,6 +23,9 @@ export const BrandAndSocialSettingsCard = () => {
   // Social Links
   const [telegramUrl, setTelegramUrl] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [supportEmail, setSupportEmail] = useState('filemarket.help@gmail.com');
+  const [playStoreEnabled, setPlayStoreEnabled] = useState(false);
+  const [playStoreUrl, setPlayStoreUrl] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -39,6 +42,7 @@ export const BrandAndSocialSettingsCard = () => {
           if (data.siteTagline) setSiteTagline(data.siteTagline);
           if (data.siteDescription) setSiteDescription(data.siteDescription);
           if (data.physicalAddress) setPhysicalAddress(data.physicalAddress);
+          if (data.supportEmail) setSupportEmail(data.supportEmail);
           if (data.headerLogoUrl) setHeaderLogoUrl(data.headerLogoUrl);
           if (data.faviconUrl) setFaviconUrl(data.faviconUrl);
           if (data.founderAvatarUrl) setFounderAvatarUrl(data.founderAvatarUrl);
@@ -53,10 +57,15 @@ export const BrandAndSocialSettingsCard = () => {
           if (data.supportLinks) {
             setTelegramUrl(data.supportLinks.telegramLink || '');
             setWhatsappNumber(data.supportLinks.whatsappNumber || '');
+            if (data.supportLinks.supportEmail) setSupportEmail(data.supportLinks.supportEmail);
+            if (data.supportLinks.playStoreEnabled !== undefined) setPlayStoreEnabled(Boolean(data.supportLinks.playStoreEnabled));
+            if (data.supportLinks.playStoreUrl) setPlayStoreUrl(data.supportLinks.playStoreUrl);
           } else if (data.socialLinks) {
             setTelegramUrl(data.socialLinks.telegram || '');
             setWhatsappNumber(data.socialLinks.whatsapp || '');
           }
+          if (data.playStoreEnabled !== undefined) setPlayStoreEnabled(Boolean(data.playStoreEnabled));
+          if (data.playStoreUrl) setPlayStoreUrl(data.playStoreUrl);
         }
 
         const supportRef = doc(db, 'system_settings', 'support_links');
@@ -65,6 +74,9 @@ export const BrandAndSocialSettingsCard = () => {
           const sData = supportSnap.data();
           if (sData.whatsappNumber) setWhatsappNumber(sData.whatsappNumber);
           if (sData.telegramLink) setTelegramUrl(sData.telegramLink);
+          if (sData.supportEmail) setSupportEmail(sData.supportEmail);
+          if (sData.playStoreEnabled !== undefined) setPlayStoreEnabled(Boolean(sData.playStoreEnabled));
+          if (sData.playStoreUrl) setPlayStoreUrl(sData.playStoreUrl);
         }
       } catch (err) {
         console.warn('Error fetching brand settings:', err);
@@ -85,6 +97,9 @@ export const BrandAndSocialSettingsCard = () => {
       const supportPayload = {
         whatsappNumber: cleanWhatsApp.trim(),
         telegramLink: telegramUrl.trim(),
+        supportEmail: (supportEmail || 'filemarket.help@gmail.com').trim(),
+        playStoreEnabled,
+        playStoreUrl: playStoreUrl.trim(),
         updatedAt: new Date().toISOString()
       };
 
@@ -94,6 +109,7 @@ export const BrandAndSocialSettingsCard = () => {
         siteTagline: (siteTagline || '').trim(),
         siteDescription: (siteDescription || '').trim(),
         physicalAddress: (physicalAddress || '').trim(),
+        supportEmail: (supportEmail || 'filemarket.help@gmail.com').trim(),
         headerLogoUrl: (headerLogoUrl || '').trim(),
         faviconUrl: (faviconUrl || '').trim(),
         founderAvatarUrl: (founderAvatarUrl || '').trim(),
@@ -391,7 +407,57 @@ export const BrandAndSocialSettingsCard = () => {
               className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
             />
           </div>
+          <div className="sm:col-span-2 space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <span>✉️</span> Official Support Email
+            </label>
+            <input
+              type="email"
+              value={supportEmail ?? 'filemarket.help@gmail.com'}
+              onChange={(e) => setSupportEmail(e.target.value)}
+              placeholder="filemarket.help@gmail.com"
+              className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+            />
+          </div>
         </div>
+      </div>
+
+      {/* Google Play Store Integration */}
+      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-3 mt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span>🤖</span> Play Store App Promotion Banner
+            </h4>
+            <p className="text-[10px] text-slate-400">Show a smart floating download prompt on mobile & desktop</p>
+          </div>
+          
+          {/* ON / OFF Switch */}
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={Boolean(playStoreEnabled)}
+              onChange={(e) => setPlayStoreEnabled(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+          </label>
+        </div>
+
+        {playStoreEnabled && (
+          <div className="space-y-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+              Google Play Store App URL
+            </label>
+            <input
+              type="url"
+              value={playStoreUrl || ''}
+              onChange={(e) => setPlayStoreUrl(e.target.value)}
+              placeholder="https://play.google.com/store/apps/details?id=com.filemarket.app"
+              className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+            />
+          </div>
+        )}
       </div>
 
     </div>

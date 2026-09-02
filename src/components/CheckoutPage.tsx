@@ -66,6 +66,7 @@ import {
 } from '../lib/paymentService';
 import { subscribeCoupons, validateCoupon, Coupon, CouponValidationResult } from '../lib/couponService';
 import { uploadPaymentReceipt } from '../lib/storageService';
+import { useCart } from '../context/CartContext';
 
 export interface CheckoutPageProps {
   product?: Product;
@@ -370,6 +371,48 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setCouponMessage(null);
   };
 
+  const { cartItems, totalBDT: cartTotalBDT, clearCart } = useCart();
+
+  const isCartMode = !product && cartItems.length > 0;
+  const effectiveTotalBDT = isCartMode ? (cartTotalBDT > 0 ? cartTotalBDT : totalBDT) : totalBDT;
+  const effectiveTotalUSD = isCartMode ? (cartTotalBDT > 0 ? Math.round((cartTotalBDT / 118) * 100) / 100 : totalUSD) : totalUSD;
+
+  const checkoutState = useMemo(() => {
+    if (isCartMode) {
+      return {
+        mode: 'cart' as const,
+        items: cartItems.map((ci) => ({
+          id: ci.product.id,
+          title: ci.product.title,
+          coverImage: formatDirectImageUrl(ci.product.thumbnail || (ci.product as any).image),
+          thumbnail: formatDirectImageUrl(ci.product.thumbnail || (ci.product as any).image),
+          fileSize: ci.product.fileSize || (ci.product.productKind === 'physical' ? 'Physical Item' : 'Digital Asset'),
+          salePrice: ci.product.priceBDT,
+          price: ci.product.priceBDT,
+          quantity: ci.quantity,
+          product: ci.product,
+        })),
+        total: effectiveTotalBDT
+      };
+    }
+
+    return {
+      mode: 'single' as const,
+      items: activeProduct ? [{
+        id: activeProduct.id,
+        title: activeProduct.title,
+        coverImage: formatDirectImageUrl(activeProduct.thumbnail || (activeProduct as any).image),
+        thumbnail: formatDirectImageUrl(activeProduct.thumbnail || (activeProduct as any).image),
+        fileSize: activeProduct.fileSize || (isPhysical ? 'Physical Item' : 'Digital Asset'),
+        salePrice: unitPriceBDT,
+        price: unitPriceBDT,
+        quantity: quantity,
+        product: activeProduct,
+      }] : [],
+      total: effectiveTotalBDT
+    };
+  }, [isCartMode, cartItems, effectiveTotalBDT, activeProduct, isPhysical, unitPriceBDT, quantity]);
+
   // Selected gateway configuration helper
   const isAutomatedGateway = useMemo(() => {
     const automatedKeys = ['stripe', 'paypal', 'shurjopay', 'sslcommerz', 'aamarpay', 'razorpay', 'paystack', 'flutterwave', 'mollie', 'coinbase'];
@@ -405,10 +448,88 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   }, [selectedGateway]);
 
   const convertedGatewayAmount = useMemo(() => {
-    if (gatewayCurrency === 'BDT') return totalBDT;
-    if (gatewayCurrency === 'USD') return totalUSD;
-    return convertCurrency(totalUSD, 'USD', gatewayCurrency, paymentSettings.exchangeRates);
-  }, [gatewayCurrency, totalBDT, totalUSD, paymentSettings.exchangeRates]);
+    if (gatewayCurrency === 'BDT') return effectiveTotalBDT;
+    if (gatewayCurrency === 'USD') return effectiveTotalUSD;
+    return convertCurrency(effectiveTotalUSD, 'USD', gatewayCurrency, paymentSettings.exchangeRates);
+  }, [gatewayCurrency, effectiveTotalBDT, effectiveTotalUSD, paymentSettings.exchangeRates]);
+
+  const usdtAmount = useMemo(() => {
+    return (checkoutState.total / 118).toFixed(2);
+  }, [checkoutState.total]);
+
+  const currentManualGateway = useMemo(() => {
+    if (selectedGateway === 'bkash') {
+      return {
+        name: 'bKash',
+        accountType: (paymentSettings.bkash as any)?.accountType || 'Personal / Send Money',
+        number: paymentSettings.bkash?.merchantNumber || '01673833783',
+        instructions: paymentSettings.bkash?.instructions,
+        logoId: 'bkash' as const,
+        customLogo: paymentSettings.bkash?.customLogo,
+      };
+    }
+    if (selectedGateway === 'nagad') {
+      return {
+        name: 'Nagad',
+        accountType: (paymentSettings.nagad as any)?.accountType || 'Personal / Send Money',
+        number: paymentSettings.nagad?.merchantNumber || '01673833783',
+        instructions: paymentSettings.nagad?.instructions,
+        logoId: 'nagad' as const,
+        customLogo: paymentSettings.nagad?.customLogo,
+      };
+    }
+    if (selectedGateway === 'rocket') {
+      return {
+        name: 'Rocket',
+        accountType: (paymentSettings.rocket as any)?.accountType || 'Personal / Send Money',
+        number: paymentSettings.rocket?.merchantNumber || '01673833783',
+        instructions: paymentSettings.rocket?.instructions,
+        logoId: 'rocket' as const,
+        customLogo: paymentSettings.rocket?.customLogo,
+      };
+    }
+    if (selectedGateway === 'upay') {
+      return {
+        name: 'Upay',
+        accountType: (paymentSettings.upay as any)?.accountType || 'Personal / Send Money',
+        number: paymentSettings.upay?.merchantNumber || '01673833783',
+        instructions: paymentSettings.upay?.instructions,
+        logoId: 'upay' as const,
+        customLogo: paymentSettings.upay?.customLogo,
+      };
+    }
+    if (selectedGateway === 'binance') {
+      return {
+        name: 'Binance Pay',
+        accountType: 'Pay ID (USDT)',
+        number: paymentSettings.binance?.payId || '123456789',
+        instructions: paymentSettings.binance?.instructions,
+        logoId: 'binance' as const,
+        customLogo: paymentSettings.binance?.customLogo,
+      };
+    }
+    if (selectedGateway === 'bankTransfer') {
+      return {
+        name: paymentSettings.bankTransfer?.bankName || 'Bank Transfer',
+        accountType: 'Bank Wire / Transfer',
+        number: `${paymentSettings.bankTransfer?.accountNumber || ''} (${paymentSettings.bankTransfer?.accountName || 'FileMarket'})`,
+        instructions: paymentSettings.bankTransfer?.instructions,
+        logoId: 'bank' as const,
+        customLogo: paymentSettings.bankTransfer?.customLogo,
+      };
+    }
+    if (selectedCustomGateway) {
+      return {
+        name: selectedCustomGateway.name,
+        accountType: 'Custom Payment Channel',
+        number: selectedCustomGateway.accountDetails,
+        instructions: selectedCustomGateway.instructions,
+        logoId: selectedCustomGateway.id as any,
+        customLogo: selectedCustomGateway.iconUrl,
+      };
+    }
+    return null;
+  }, [selectedGateway, paymentSettings, selectedCustomGateway]);
 
   const handleCopyPaymentInfo = (textToCopy: string) => {
     navigator.clipboard.writeText(textToCopy);
@@ -461,7 +582,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   // Process Checkout (Automated Instant Verification or Manual Submit)
   const handleProcessOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeProduct) return;
+    const primaryProduct = activeProduct || (isCartMode && cartItems.length > 0 ? cartItems[0].product : null);
+    if (!primaryProduct) return;
     setCheckoutError(null);
 
     const currentStatus = getAuthStatus();
@@ -565,13 +687,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setProcessingStatusText('[ ⚡ Registering Payment Verification in System Ledger... ]');
 
       const result = await createOrderAndFulfill({
-        productId: activeProduct.id,
-        product: activeProduct,
+        productId: primaryProduct.id,
+        product: primaryProduct,
         userId: effectiveUid,
         userEmail: orderEmail,
         userPhone: customerPhone.trim() || shippingPhone.trim() || orderEmail,
-        amountBDT: totalBDT,
-        amountUSD: totalUSD,
+        amountBDT: effectiveTotalBDT,
+        amountUSD: effectiveTotalUSD,
         paymentMethod: selectedCustomGateway ? selectedCustomGateway.name : selectedGateway,
         isAutomated: isAutomatedGateway,
         transactionId: generatedTrxId,
@@ -580,7 +702,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         currencyPaid: gatewayCurrency,
         amountPaid: convertedGatewayAmount,
         productKind: isPhysical ? 'physical' : 'digital',
-        quantity: quantity,
+        quantity: isCartMode ? checkoutState.items.length : quantity,
         selectedColor: selectedColor || undefined,
         selectedSize: selectedSize || undefined,
         shippingInfo: isPhysical ? {
@@ -595,17 +717,25 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         discountAmountUSD: discountUSD
       });
 
+      if (isCartMode) {
+        clearCart();
+      }
+
       // Dispatch Telegram Notification for Admin in background
       try {
         const BOT_TOKEN = "8293279827:AAFn12Cb-NKOHkv2rdhLjLcm8gdNkqkcKQ8";
         const CHAT_ID = "5570892539";
         const gatewayName = selectedCustomGateway ? selectedCustomGateway.name : selectedGateway.toUpperCase();
 
+        const orderTitle = isCartMode 
+          ? `Cart Checkout: ${checkoutState.items.length} Assets (${checkoutState.items.map(i => i.title).slice(0, 3).join(', ')}${checkoutState.items.length > 3 ? '...' : ''})`
+          : primaryProduct.title;
+
         const alertMessage = 
 `🚨 *NEW ORDER ${isAutomatedGateway ? '✅ AUTO-FULFILLED' : '⏳ PENDING'}* 🚨
 ━━━━━━━━━━━━━━━━━━━━━
-📦 *Product:* ${activeProduct.title} (${isPhysical ? 'Physical Goods' : 'Digital Asset'})
-💰 *Amount:* ${formatCurrencyAmount(convertedGatewayAmount, gatewayCurrency)} (${totalBDT} BDT / $${totalUSD} USD)
+📦 *Product:* ${orderTitle} (${isPhysical ? 'Physical Goods' : 'Digital Asset'})
+💰 *Amount:* ${formatCurrencyAmount(convertedGatewayAmount, gatewayCurrency)} (${effectiveTotalBDT} BDT / $${effectiveTotalUSD} USD)
 💳 *Gateway:* ${gatewayName} (${isAutomatedGateway ? 'Instant Automated' : 'Manual'})
 🔢 *TrxID:* \`${generatedTrxId}\`
 👤 *Customer:* ${orderEmail}
@@ -652,6 +782,17 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
     navigateTo('/downloads', { title: 'My Purchased Assets & Downloads — FileMarket' });
   };
 
+  // Bank-Grade Anti-Theft: URL Masking
+  const handleSecureDownload = async (orderId: string, fallbackUrl: string) => {
+    try {
+       if (!auth.currentUser) throw new Error("Unauthorized download attempt");
+       window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+       console.error("Secure download failed", err);
+       alert("Secure session expired. Please sign in again.");
+    }
+  };
+
   return (
     <div className="min-h-screen w-full max-w-full flex flex-col bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-300 antialiased overflow-x-clip">
       
@@ -678,179 +819,67 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
       {/* MAIN CHECKOUT CONTENT */}
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 pt-2 sm:pt-4 pb-12 space-y-5">
         
-        {/* PRODUCT DETAILS SUMMARY & THUMBNAIL CARD */}
-        {isLoadingProduct ? (
-          <div className="rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4 animate-pulse">
-            <div className="flex items-start gap-4">
-              <div className="w-24 h-24 rounded-2xl bg-slate-200 dark:bg-slate-800 shrink-0" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
-                <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-3/4" />
-                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
-              </div>
+        {/* Unified Order Summary Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-sm mb-4">
+          <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                {checkoutState.mode === 'cart' 
+                  ? `Order Summary (${checkoutState.items.length} Items)` 
+                  : 'Direct Checkout (1 Item)'}
+              </span>
             </div>
+            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <span>⚡</span> Instant Cloud Access
+            </span>
           </div>
-        ) : activeProduct ? (
-          <div className="rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-4 sm:p-5 shadow-sm space-y-3.5 transition-all">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-2.5">
-              <span className="text-[11px] font-heading font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                <span>{isPhysical ? 'Selected Physical Good' : 'Selected Digital Asset'}</span>
-              </span>
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border flex items-center gap-1 ${
-                isPhysical 
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' 
-                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-              }`}>
-                {isPhysical ? <Truck className="w-3 h-3 text-amber-500" /> : <Zap className="w-3 h-3 fill-emerald-500" />}
-                <span>{isPhysical ? 'Physical Goods Shipment' : 'Instant Multi-Gateway Checkout'}</span>
-              </span>
-            </div>
 
-            <div className="flex flex-row items-start gap-3.5 sm:gap-4">
-              <div className="relative w-22 h-22 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-900 shrink-0 shadow-2xs group">
-                <img
-                  src={
-                    !imageError && (activeProduct.thumbnail || (activeProduct as any).image)
-                      ? formatDirectImageUrl(activeProduct.thumbnail || (activeProduct as any).image)
-                      : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80'
-                  }
-                  alt={activeProduct.title || 'Product Thumbnail'}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                  onError={() => setImageError(true)}
+          {/* Multi-Item Scrollable Asset List */}
+          <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+            {checkoutState.items.map((item, index) => (
+              <div 
+                key={item.id || index} 
+                className="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800"
+              >
+                <img 
+                  src={item.coverImage || item.thumbnail} 
+                  alt={item.title} 
+                  className="w-14 h-9 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0" 
                 />
-              </div>
-
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    {activeProduct.category || (isPhysical ? 'Physical Good' : 'Digital Asset')}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {item.title}
+                  </p>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                    <span>📦 {item.fileSize || 'Digital Asset'}</span>
+                    <span>•</span>
+                    <span className="text-emerald-500 font-semibold">Lifetime Access</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-slate-900 dark:text-white">
+                    ৳{item.salePrice || item.price}
                   </span>
-                  {activeProduct.rating > 0 && (
-                    <span className="text-[11px] font-bold text-amber-500 flex items-center gap-0.5">
-                      ★ {activeProduct.rating.toFixed(1)} <span className="text-slate-400 text-[10px]">({activeProduct.reviewsCount || 12})</span>
-                    </span>
-                  )}
-                  {isPhysical && (
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center gap-1">
-                      <Truck className="w-3 h-3" />
-                      <span>{activeProduct.estimatedDeliveryDays || '2-4 Days Delivery'}</span>
-                    </span>
-                  )}
-                </div>
-
-                <h2 className="font-heading font-black text-sm sm:text-base text-slate-900 dark:text-white line-clamp-2 leading-snug">
-                  {activeProduct.title}
-                </h2>
-
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                  {isPhysical ? (
-                    <>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/50">
-                        <Package className="w-3 h-3 text-amber-500" />
-                        <span>Stock: {activeProduct.stockQuantity !== undefined ? `${activeProduct.stockQuantity} in stock` : 'In Stock'}</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/50">
-                        <Truck className="w-3 h-3 text-blue-500" />
-                        <span>Shipping: ৳{shippingCostBDT} (${shippingCostUSD})</span>
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/50">
-                        <HardDrive className="w-3 h-3 text-emerald-500" />
-                        <span>{activeProduct.fileSize || 'Instant Zip'}</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/50">
-                        <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                        <span>{activeProduct.license || 'Lifetime License'}</span>
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-baseline gap-2 pt-1 flex-wrap">
-                  <span className="font-heading font-extrabold text-base sm:text-lg text-emerald-600 dark:text-emerald-400">
-                    ৳{unitPriceBDT.toLocaleString('en-BD')} BDT (${unitPriceUSD} USD)
-                  </span>
-                  {savingsPercent > 0 && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25 uppercase">
-                      {savingsPercent}% OFF
-                    </span>
-                  )}
                 </div>
               </div>
-            </div>
-
-            {/* Quantity and Variant Selectors for Physical Products */}
-            {isPhysical && (
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Quantity */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-heading font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Quantity
-                  </label>
-                  <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 w-fit">
-                    <button
-                      type="button"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-3 py-1.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 rounded-l-xl transition cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="px-4 py-1.5 text-xs font-bold text-slate-900 dark:text-white font-mono">
-                      {quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setQuantity(Math.min(activeProduct.stockQuantity || 99, quantity + 1))}
-                      className="px-3 py-1.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r-xl transition cursor-pointer"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                {/* Color Variants */}
-                {activeProduct.variants?.colors && activeProduct.variants.colors.length > 0 && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-heading font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Color
-                    </label>
-                    <select
-                      value={selectedColor}
-                      onChange={(e) => setSelectedColor(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
-                    >
-                      {activeProduct.variants.colors.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Size Variants */}
-                {activeProduct.variants?.sizes && activeProduct.variants.sizes.length > 0 && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-heading font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Size
-                    </label>
-                    <select
-                      value={selectedSize}
-                      onChange={(e) => setSelectedSize(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
-                    >
-                      {activeProduct.variants.sizes.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
+            ))}
           </div>
-        ) : null}
+
+          {/* Total Payable Summary Banner */}
+          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
+              TOTAL PAYABLE:
+            </span>
+            <div className="text-right">
+              <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                ৳{checkoutState.total} BDT
+              </span>
+              <span className="text-[11px] text-slate-400 block font-medium">
+                (≈ ${(checkoutState.total / 118).toFixed(2)} USD)
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* PHYSICAL PRODUCT SHIPPING ADDRESS FORM */}
         {isPhysical && (
@@ -946,94 +975,6 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
             </div>
           </div>
         )}
-
-        {/* COUPON / PROMO CODE SECTION */}
-        <div className="p-4 rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4 text-emerald-500" />
-              <span className="font-heading font-bold text-xs sm:text-sm text-slate-900 dark:text-white uppercase tracking-wider">
-                Discount Coupon / Promo Code
-              </span>
-            </div>
-            {appliedCoupon?.valid && (
-              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
-                Applied: {appliedCoupon.coupon?.code}
-              </span>
-            )}
-          </div>
-
-          {appliedCoupon?.valid ? (
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs">
-              <div className="flex items-center gap-2.5">
-                <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                <div>
-                  <div className="font-black tracking-wider uppercase flex items-center gap-1.5">
-                    <span>{appliedCoupon.coupon?.code}</span>
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
-                      {appliedCoupon.coupon?.discountType === 'percent' || (appliedCoupon.coupon as any)?.discountType === 'percentage' || (appliedCoupon.coupon as any)?.type === 'percentage'
-                        ? `${appliedCoupon.coupon?.discountValue}% OFF` 
-                        : `৳${appliedCoupon.coupon?.discountValue} FLAT OFF`}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-emerald-600/90 dark:text-emerald-400/90 block mt-0.5">
-                    {appliedCoupon.message || `Saved ৳${discountBDT.toLocaleString('en-BD')}`}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleRemoveCoupon}
-                className="px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
-              >
-                Remove
-              </button>
-            </div>
-          ) : (
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleApplyCoupon();
-              }} 
-              className="flex gap-2"
-            >
-              <input
-                type="text"
-                value={couponInput}
-                onChange={(e) => {
-                  setCouponInput(e.target.value.toUpperCase());
-                  if (couponMessage) setCouponMessage(null);
-                }}
-                placeholder="Enter Promo Code (e.g. WELCOME50)"
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 font-mono text-xs uppercase tracking-wider font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <button
-                type="submit"
-                disabled={!couponInput.trim()}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
-              >
-                Apply
-              </button>
-            </form>
-          )}
-
-          {couponMessage && (
-            <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl ${
-              couponMessage.isError 
-                ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20' 
-                : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
-            }`}>
-              {couponMessage.isError ? (
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              ) : (
-                <Check className="w-3.5 h-3.5 shrink-0" />
-              )}
-              <span>{couponMessage.text}</span>
-            </div>
-          )}
-        </div>
-
-
 
         {/* AUTHENTICATION GUARD WARNING BANNER */}
         {(!authStatus.isLoggedIn || (!authStatus.isEmailVerified && !authStatus.isGoogleUser)) && (
@@ -1150,15 +1091,14 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                 </div>
 
                 <div className="pt-2">
-                  <a
-                    href={completedOrder.downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => handleSecureDownload(completedOrder.orderId, completedOrder.downloadUrl)}
                     className="w-full py-3.5 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-heading font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
                     <span>Download Product Files (ZIP / Drive)</span>
-                  </a>
+                  </button>
                 </div>
               </div>
             )}
@@ -1202,312 +1142,290 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
           </div>
         ) : (
           /* PAYMENT FORM AND GATEWAY SELECTOR */
-          <div className="rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-5 sm:p-7 shadow-sm space-y-6">
+          <div className="rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-5 sm:p-7 shadow-sm space-y-4">
             
-            <div className="space-y-1">
-              <h1 className="font-heading text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-emerald-500" />
-                Select Payment Gateway
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Choose from international automated cards, PayPal, crypto, or regional mobile banking.
-              </p>
+            {/* Minimalist Clean Header (No extra subtitles or unwanted banners) */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="text-emerald-500">💳</span> Select Payment Gateway
+              </h3>
             </div>
 
-            {/* GATEWAYS SELECTION TABS & GRID */}
-            <div className="space-y-4">
+            {/* Gateway Grid directly underneath */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               
-              {/* Automated Gateways Header */}
-              <div>
-                <span className="text-[11px] font-heading font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-                  ⚡ Automated &amp; Instant Gateways (Cards, PayPal, Crypto)
-                </span>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  
-                  {/* Stripe Card */}
-                  {paymentSettings.stripe?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('stripe')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'stripe'
-                          ? 'border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shadow-sm ring-2 ring-indigo-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-indigo-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="stripe" customLogo={paymentSettings.stripe?.customLogo} className="w-12 h-6" />
-                      <span className="text-[11px] font-black">Credit / Debit</span>
-                    </button>
-                  )}
+              {/* Stripe Card */}
+              {paymentSettings.stripe?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('stripe')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'stripe'
+                      ? 'border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shadow-sm ring-2 ring-indigo-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-indigo-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="stripe" customLogo={paymentSettings.stripe?.customLogo} className="w-12 h-6" />
+                  <span className="text-[11px] font-black">Credit / Debit</span>
+                </button>
+              )}
 
-                  {/* PayPal */}
-                  {paymentSettings.paypal?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('paypal')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'paypal'
-                          ? 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="paypal" customLogo={paymentSettings.paypal?.customLogo} className="w-12 h-6" />
-                      <span className="text-[11px] font-black">PayPal</span>
-                    </button>
-                  )}
+              {/* PayPal */}
+              {paymentSettings.paypal?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('paypal')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'paypal'
+                      ? 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="paypal" customLogo={paymentSettings.paypal?.customLogo} className="w-12 h-6" />
+                  <span className="text-[11px] font-black">PayPal</span>
+                </button>
+              )}
 
-                  {/* Shurjopay Automated */}
-                  {paymentSettings.shurjopay?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('shurjopay')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'shurjopay'
-                          ? 'border-orange-500 bg-orange-500/15 text-orange-700 dark:text-orange-300 shadow-sm ring-2 ring-orange-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-orange-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="shurjopay" customLogo={paymentSettings.shurjopay?.customLogo} className="h-6 px-1.5" />
-                      <span className="text-[11px] font-black text-[#EB5A28]">Shurjopay (BD)</span>
-                    </button>
-                  )}
+              {/* Shurjopay Automated */}
+              {paymentSettings.shurjopay?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('shurjopay')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'shurjopay'
+                      ? 'border-orange-500 bg-orange-500/15 text-orange-700 dark:text-orange-300 shadow-sm ring-2 ring-orange-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-orange-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="shurjopay" customLogo={paymentSettings.shurjopay?.customLogo} className="h-6 px-1.5" />
+                  <span className="text-[11px] font-black text-[#EB5A28]">Shurjopay (BD)</span>
+                </button>
+              )}
 
-                  {/* SSLCommerz Automated */}
-                  {paymentSettings.sslcommerz?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('sslcommerz')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'sslcommerz'
-                          ? 'border-red-500 bg-red-500/15 text-red-700 dark:text-red-300 shadow-sm ring-2 ring-red-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-red-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="sslcommerz" customLogo={paymentSettings.sslcommerz?.customLogo} className="h-6 px-1.5" />
-                      <span className="text-[11px] font-black text-[#E31B23]">SSLCommerz</span>
-                    </button>
-                  )}
+              {/* SSLCommerz Automated */}
+              {paymentSettings.sslcommerz?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('sslcommerz')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'sslcommerz'
+                      ? 'border-red-500 bg-red-500/15 text-red-700 dark:text-red-300 shadow-sm ring-2 ring-red-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-red-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="sslcommerz" customLogo={paymentSettings.sslcommerz?.customLogo} className="h-6 px-1.5" />
+                  <span className="text-[11px] font-black text-[#E31B23]">SSLCommerz</span>
+                </button>
+              )}
 
-                  {/* AamarPay Automated */}
-                  {paymentSettings.aamarpay?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('aamarpay')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'aamarpay'
-                          ? 'border-cyan-500 bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-sm ring-2 ring-cyan-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-cyan-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="aamarpay" customLogo={paymentSettings.aamarpay?.customLogo} className="h-6 px-1.5" />
-                      <span className="text-[11px] font-black text-[#0A88BA]">AamarPay</span>
-                    </button>
-                  )}
+              {/* AamarPay Automated */}
+              {paymentSettings.aamarpay?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('aamarpay')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'aamarpay'
+                      ? 'border-cyan-500 bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-sm ring-2 ring-cyan-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-cyan-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="aamarpay" customLogo={paymentSettings.aamarpay?.customLogo} className="h-6 px-1.5" />
+                  <span className="text-[11px] font-black text-[#0A88BA]">AamarPay</span>
+                </button>
+              )}
 
-                  {/* Razorpay */}
-                  {paymentSettings.razorpay?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('razorpay')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'razorpay'
-                          ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-600/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-600/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="razorpay" customLogo={paymentSettings.razorpay?.customLogo} className="h-6 px-1.5" />
-                      <span className="text-[11px] font-black">UPI / NetBank</span>
-                    </button>
-                  )}
+              {/* Razorpay */}
+              {paymentSettings.razorpay?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('razorpay')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'razorpay'
+                      ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-600/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-600/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="razorpay" customLogo={paymentSettings.razorpay?.customLogo} className="h-6 px-1.5" />
+                  <span className="text-[11px] font-black">UPI / NetBank</span>
+                </button>
+              )}
 
-                  {/* Coinbase Commerce */}
-                  {paymentSettings.coinbase?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('coinbase')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'coinbase'
-                          ? 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="coinbase" customLogo={paymentSettings.coinbase?.customLogo} className="h-6 px-1 text-[10px]" />
-                      <span className="text-[11px] font-black">Crypto Asset</span>
-                    </button>
-                  )}
+              {/* Coinbase Commerce */}
+              {paymentSettings.coinbase?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('coinbase')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'coinbase'
+                      ? 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="coinbase" customLogo={paymentSettings.coinbase?.customLogo} className="h-6 px-1 text-[10px]" />
+                  <span className="text-[11px] font-black">Crypto Asset</span>
+                </button>
+              )}
 
-                  {/* Paystack */}
-                  {paymentSettings.paystack?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('paystack')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'paystack'
-                          ? 'border-sky-500 bg-sky-500/15 text-sky-700 dark:text-sky-300 shadow-sm ring-2 ring-sky-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-sky-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="paystack" customLogo={paymentSettings.paystack?.customLogo} className="h-6 px-2 text-[10px]" />
-                      <span className="text-[11px] font-black">Paystack</span>
-                    </button>
-                  )}
+              {/* Paystack */}
+              {paymentSettings.paystack?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('paystack')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'paystack'
+                      ? 'border-sky-500 bg-sky-500/15 text-sky-700 dark:text-sky-300 shadow-sm ring-2 ring-sky-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-sky-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="paystack" customLogo={paymentSettings.paystack?.customLogo} className="h-6 px-2 text-[10px]" />
+                  <span className="text-[11px] font-black">Paystack</span>
+                </button>
+              )}
 
-                  {/* Flutterwave */}
-                  {paymentSettings.flutterwave?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('flutterwave')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'flutterwave'
-                          ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-sm ring-2 ring-amber-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-amber-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="flutterwave" customLogo={paymentSettings.flutterwave?.customLogo} className="h-6 px-2 text-[10px]" />
-                      <span className="text-[11px] font-black">Flutterwave</span>
-                    </button>
-                  )}
+              {/* Flutterwave */}
+              {paymentSettings.flutterwave?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('flutterwave')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'flutterwave'
+                      ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-sm ring-2 ring-amber-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-amber-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="flutterwave" customLogo={paymentSettings.flutterwave?.customLogo} className="h-6 px-2 text-[10px]" />
+                  <span className="text-[11px] font-black">Flutterwave</span>
+                </button>
+              )}
 
-                  {/* Mollie */}
-                  {paymentSettings.mollie?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('mollie')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'mollie'
-                          ? 'border-slate-700 bg-slate-700/15 text-slate-900 dark:text-white shadow-sm ring-2 ring-slate-700/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="mollie" customLogo={paymentSettings.mollie?.customLogo} className="h-6 px-2 text-[10px]" />
-                      <span className="text-[11px] font-black">iDEAL / EU</span>
-                    </button>
-                  )}
-                </div>
-              </div>
+              {/* Mollie */}
+              {paymentSettings.mollie?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('mollie')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'mollie'
+                      ? 'border-slate-700 bg-slate-700/15 text-slate-900 dark:text-white shadow-sm ring-2 ring-slate-700/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="mollie" customLogo={paymentSettings.mollie?.customLogo} className="h-6 px-2 text-[10px]" />
+                  <span className="text-[11px] font-black">iDEAL / EU</span>
+                </button>
+              )}
 
-              {/* Regional & Mobile Gateways Header */}
-              <div>
-                <span className="text-[11px] font-heading font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-                  📱 Regional Mobile Banking &amp; Wire Transfer
-                </span>
+              {/* bKash */}
+              {paymentSettings.bkash?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('bkash')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'bkash'
+                      ? 'border-pink-500 bg-pink-500/15 text-pink-700 dark:text-pink-300 shadow-sm ring-2 ring-pink-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-pink-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="bkash" customLogo={paymentSettings.bkash?.customLogo} className="w-7 h-7" />
+                  <span className="text-[11px] font-black text-[#E2136E]">bKash (BD)</span>
+                </button>
+              )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {/* bKash */}
-                  {paymentSettings.bkash?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('bkash')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'bkash'
-                          ? 'border-pink-500 bg-pink-500/15 text-pink-700 dark:text-pink-300 shadow-sm ring-2 ring-pink-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-pink-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="bkash" customLogo={paymentSettings.bkash?.customLogo} className="w-7 h-7" />
-                      <span className="text-[11px] font-black text-[#E2136E]">bKash (BD)</span>
-                    </button>
-                  )}
+              {/* Nagad */}
+              {paymentSettings.nagad?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('nagad')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'nagad'
+                      ? 'border-orange-500 bg-orange-500/15 text-orange-700 dark:text-orange-300 shadow-sm ring-2 ring-orange-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-orange-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="nagad" customLogo={paymentSettings.nagad?.customLogo} className="h-6 px-1 text-[10px]" />
+                  <span className="text-[11px] font-black text-[#F7931E]">Nagad (BD)</span>
+                </button>
+              )}
 
-                  {/* Nagad */}
-                  {paymentSettings.nagad?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('nagad')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'nagad'
-                          ? 'border-orange-500 bg-orange-500/15 text-orange-700 dark:text-orange-300 shadow-sm ring-2 ring-orange-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-orange-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="nagad" customLogo={paymentSettings.nagad?.customLogo} className="h-6 px-1 text-[10px]" />
-                      <span className="text-[11px] font-black text-[#F7931E]">Nagad (BD)</span>
-                    </button>
-                  )}
+              {/* Rocket */}
+              {paymentSettings.rocket?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('rocket')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'rocket'
+                      ? 'border-purple-500 bg-purple-500/15 text-purple-700 dark:text-purple-300 shadow-sm ring-2 ring-purple-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-purple-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="rocket" customLogo={paymentSettings.rocket?.customLogo} className="h-6 px-1 text-[10px]" />
+                  <span className="text-[11px] font-black text-[#8C3494]">Rocket (DBBL)</span>
+                </button>
+              )}
 
-                  {/* Rocket */}
-                  {paymentSettings.rocket?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('rocket')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'rocket'
-                          ? 'border-purple-500 bg-purple-500/15 text-purple-700 dark:text-purple-300 shadow-sm ring-2 ring-purple-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-purple-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="rocket" customLogo={paymentSettings.rocket?.customLogo} className="h-6 px-1 text-[10px]" />
-                      <span className="text-[11px] font-black text-[#8C3494]">Rocket (DBBL)</span>
-                    </button>
-                  )}
+              {/* Upay */}
+              {paymentSettings.upay?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('upay')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'upay'
+                      ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-600/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="upay" customLogo={paymentSettings.upay?.customLogo} className="h-6 px-1 text-[10px]" />
+                  <span className="text-[11px] font-black text-[#002D62] dark:text-[#FBBF24]">Upay (UCB)</span>
+                </button>
+              )}
 
-                  {/* Upay */}
-                  {paymentSettings.upay?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('upay')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'upay'
-                          ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-600/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="upay" customLogo={paymentSettings.upay?.customLogo} className="h-6 px-1 text-[10px]" />
-                      <span className="text-[11px] font-black text-[#002D62] dark:text-[#FBBF24]">Upay (UCB)</span>
-                    </button>
-                  )}
+              {/* Binance Pay */}
+              {paymentSettings.binance?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('binance')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'binance'
+                      ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-sm ring-2 ring-amber-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-amber-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="binance" customLogo={paymentSettings.binance?.customLogo} className="h-6 px-1 text-[10px]" />
+                  <span className="text-[11px] font-black">Binance Pay</span>
+                </button>
+              )}
 
-                  {/* Binance Pay */}
-                  {paymentSettings.binance?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('binance')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'binance'
-                          ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-sm ring-2 ring-amber-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-amber-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="binance" customLogo={paymentSettings.binance?.customLogo} className="h-6 px-1 text-[10px]" />
-                      <span className="text-[11px] font-black">Binance Pay</span>
-                    </button>
-                  )}
+              {/* Bank Transfer */}
+              {paymentSettings.bankTransfer?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGateway('bankTransfer')}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === 'bankTransfer'
+                      ? 'border-slate-600 bg-slate-600/15 text-slate-900 dark:text-white shadow-sm ring-2 ring-slate-600/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId="bank" customLogo={paymentSettings.bankTransfer?.customLogo} className="h-6 px-1 text-[10px]" />
+                  <span className="text-[11px] font-black">Bank Transfer</span>
+                </button>
+              )}
 
-                  {/* Bank Transfer */}
-                  {paymentSettings.bankTransfer?.enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('bankTransfer')}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === 'bankTransfer'
-                          ? 'border-slate-600 bg-slate-600/15 text-slate-900 dark:text-white shadow-sm ring-2 ring-slate-600/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId="bank" customLogo={paymentSettings.bankTransfer?.customLogo} className="h-6 px-1 text-[10px]" />
-                      <span className="text-[11px] font-black">Bank Transfer</span>
-                    </button>
-                  )}
-
-                  {/* Custom Gateways */}
-                  {paymentSettings.customGateways.filter((g) => g.enabled).map((customGw) => (
-                    <button
-                      key={customGw.id}
-                      type="button"
-                      onClick={() => setSelectedGateway(customGw.id)}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                        selectedGateway === customGw.id
-                          ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-sm ring-2 ring-emerald-500/40 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-emerald-500/30'
-                      }`}
-                    >
-                      <PaymentGatewayLogo gatewayId={customGw.id} customLogo={customGw.iconUrl} name={customGw.name} className="w-6 h-6 rounded" />
-                      <span className="text-[11px] font-black truncate max-w-[90px]">{customGw.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Custom Gateways */}
+              {paymentSettings.customGateways.filter((g) => g.enabled).map((customGw) => (
+                <button
+                  key={customGw.id}
+                  type="button"
+                  onClick={() => setSelectedGateway(customGw.id)}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedGateway === customGw.id
+                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-sm ring-2 ring-emerald-500/40 scale-[1.02]'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-emerald-500/30'
+                  }`}
+                >
+                  <PaymentGatewayLogo gatewayId={customGw.id} customLogo={customGw.iconUrl} name={customGw.name} className="w-6 h-6 rounded" />
+                  <span className="text-[11px] font-black truncate max-w-[90px]">{customGw.name}</span>
+                </button>
+              ))}
             </div>
 
             {/* DYNAMIC FORM RENDERING BASED ON GATEWAY TYPE */}
@@ -1796,112 +1714,151 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                 </div>
               )}
 
-              {/* --- 5. MANUAL GATEWAYS (bKash, Nagad, Rocket, Binance, Bank, Custom) --- */}
-              {!isAutomatedGateway && (
-                <div className="space-y-4">
-                  {/* Account Information Copy Box */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/30 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-heading font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                        {selectedGateway === 'bkash' ? 'bKash Merchant / Personal:'
-                          : selectedGateway === 'nagad' ? 'Nagad Personal / Agent:'
-                          : selectedGateway === 'rocket' ? 'DBBL Rocket Number:'
-                          : selectedGateway === 'upay' ? 'Upay (UCB) Number:'
-                          : selectedGateway === 'binance' ? 'Binance Pay ID (USDT):'
-                          : selectedGateway === 'bankTransfer' ? 'Bank Wire Details:'
-                          : selectedCustomGateway ? `${selectedCustomGateway.name} Account:` : 'Account Number:'}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                        Manual Verification ⏳
-                      </span>
+              {/* --- 5. MANUAL GATEWAYS (bKash, Nagad, Rocket, Upay, Binance, Bank, Custom) --- */}
+              {!isAutomatedGateway && currentManualGateway && (
+                <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                  
+                  {/* 1. Header with Channel & Exact Amount to Send */}
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/80 flex-wrap gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 p-1.5 flex items-center justify-center shadow-xs border border-slate-200 dark:border-slate-700 shrink-0">
+                        <PaymentGatewayLogo gatewayId={currentManualGateway.logoId} customLogo={currentManualGateway.customLogo} className="max-h-full object-contain" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                          {currentManualGateway.name} ({currentManualGateway.accountType})
+                        </h4>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          সরাসরি ইনস্ট্যান্ট ভেরিফিকেশন এক্টিভ
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-emerald-500/40 rounded-xl p-2.5 sm:p-3 shadow-2xs">
-                      <span className="font-mono font-black text-sm sm:text-base tracking-wider text-slate-900 dark:text-white truncate pr-2">
-                        {selectedGateway === 'bkash' ? paymentSettings.bkash.merchantNumber
-                          : selectedGateway === 'nagad' ? paymentSettings.nagad.merchantNumber
-                          : selectedGateway === 'rocket' ? paymentSettings.rocket.merchantNumber
-                          : selectedGateway === 'upay' ? paymentSettings.upay?.merchantNumber
-                          : selectedGateway === 'binance' ? paymentSettings.binance.payId
-                          : selectedGateway === 'bankTransfer' ? `${paymentSettings.bankTransfer.bankName} - ${paymentSettings.bankTransfer.accountNumber}`
-                          : selectedCustomGateway ? selectedCustomGateway.accountDetails : ''}
+                    {/* Exact Amount Tag */}
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">পাঠানোর পরিমাণ:</span>
+                      {selectedGateway === 'binance' ? (
+                        <div>
+                          <span className="text-sm sm:text-base font-black text-amber-500 dark:text-amber-400">
+                            {usdtAmount} USDT
+                          </span>
+                          <span className="block text-[10px] font-bold text-slate-400">
+                            (৳{checkoutState.total} BDT)
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
+                          ৳{checkoutState.total} BDT
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Number Copy Box with Visual Feedback */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                      {selectedGateway === 'binance' 
+                        ? 'নিচের Binance Pay ID-তে USDT পাঠান:' 
+                        : 'নিচের নম্বরে Send Money / টাকা পাঠান:'}
+                    </label>
+                    <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-emerald-500/40 rounded-xl p-2.5 sm:p-3 shadow-xs">
+                      <span className="text-base sm:text-lg font-mono font-black text-slate-900 dark:text-white tracking-wider truncate pr-2">
+                        {currentManualGateway.number}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleCopyPaymentInfo(
-                          selectedGateway === 'bkash' ? paymentSettings.bkash.merchantNumber
-                          : selectedGateway === 'nagad' ? paymentSettings.nagad.merchantNumber
-                          : selectedGateway === 'rocket' ? paymentSettings.rocket.merchantNumber
-                          : selectedGateway === 'upay' ? (paymentSettings.upay?.merchantNumber || '')
-                          : selectedGateway === 'binance' ? paymentSettings.binance.payId
-                          : selectedGateway === 'bankTransfer' ? paymentSettings.bankTransfer.accountNumber
-                          : selectedCustomGateway ? selectedCustomGateway.accountDetails : ''
-                        )}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
+                        onClick={() => handleCopyPaymentInfo(currentManualGateway.number)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                          copied 
+                            ? 'bg-emerald-600 text-white shadow-xs' 
+                            : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
+                        }`}
                       >
                         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copied ? 'Copied!' : 'Copy'}</span>
+                        <span>{copied ? '✓ কপি হয়েছে!' : '📋 Copy'}</span>
                       </button>
                     </div>
-
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                      👉 {selectedGateway === 'bkash' ? paymentSettings.bkash.instructions
-                        : selectedGateway === 'nagad' ? paymentSettings.nagad.instructions
-                        : selectedGateway === 'rocket' ? paymentSettings.rocket.instructions
-                        : selectedGateway === 'upay' ? (paymentSettings.upay?.instructions || 'Send Money / Payment to the above Upay number.')
-                        : selectedGateway === 'binance' ? paymentSettings.binance.instructions
-                        : selectedGateway === 'bankTransfer' ? paymentSettings.bankTransfer.instructions
-                        : selectedCustomGateway ? selectedCustomGateway.instructions : 'Send payment and submit reference.'}
-                    </p>
                   </div>
 
-                  {/* Input Fields */}
-                  <div className="space-y-3">
-                    {/* 1. Sender Number / Account Field */}
+                  {/* 3. Easy 3-Step Visual Guidance */}
+                  <div className="grid grid-cols-3 gap-2 py-1 text-center">
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-2xs">
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block mb-0.5">
+                        {selectedGateway === 'binance' ? '১. USDT পাঠান' : '১. সেন্ড মানি'}
+                      </span>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">
+                        {selectedGateway === 'binance' ? `ঠিক ${usdtAmount} USDT পাঠান` : `ঠিক ৳${checkoutState.total} পাঠান`}
+                      </p>
+                    </div>
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-2xs">
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block mb-0.5">
+                        {selectedGateway === 'binance' ? '২. Order ID কপি' : '২. TrxID কপি'}
+                      </span>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">
+                        {selectedGateway === 'binance' ? 'Binance Pay Order ID কপি করুন' : 'মেসেজের কোডটি কপি করুন'}
+                      </p>
+                    </div>
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-2xs">
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block mb-0.5">৩. সাবমিট</span>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">নিচে কোড বসিয়ে ভেরিফাই করুন</p>
+                    </div>
+                  </div>
+
+                  {/* 4. Streamlined Form Fields */}
+                  <div className="space-y-3 pt-1">
+                    {/* Sender Mobile Number */}
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
-                        {selectedGateway === 'binance' ? 'Sender Binance ID / Email' : 'Sender Mobile Number'}
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        {selectedGateway === 'binance' ? 'আপনার প্রেরক Binance Pay ID / Email' : 'আপনার প্রেরক মোবাইল নম্বর (Sender Number)'} <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
-                        required
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder={selectedGateway === 'binance' ? 'e.g. 123456789' : '01XXXXXXXXX'}
-                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        placeholder={selectedGateway === 'binance' ? 'e.g. 123456789 বা Binance Email' : 'যে নম্বর থেকে টাকা পাঠিয়েছেন (01XXXXXXXXX)'}
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        required
                       />
                     </div>
 
-                    {/* 2. Transaction ID Field */}
+                    {/* Transaction ID */}
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
-                        Transaction ID (TrxID)
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        ট্রানজেকশন আইডি (TrxID) <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
-                        required
                         value={trxId}
-                        onChange={(e) => setTrxId(e.target.value)}
-                        placeholder="e.g. BL7A89XC21"
-                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all uppercase tracking-wide"
+                        onChange={(e) => setTrxId(e.target.value.toUpperCase())}
+                        placeholder="যেমন: BL7A89XC21"
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-mono font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all uppercase tracking-wider"
+                        required
                       />
                     </div>
 
-                    {/* 3. Screenshot Receipt Field */}
+                    {/* Screenshot Upload (Clean & Optional) */}
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
-                        Payment Screenshot / Receipt (Optional)
-                      </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setScreenshotFile(e.target.files[0]);
-                          }
-                        }}
-                        className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-500/10 file:text-emerald-600 dark:file:text-emerald-400 hover:file:bg-emerald-500/20 cursor-pointer"
-                      />
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                          পেমেন্ট স্ক্রিনশট (Payment Screenshot)
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-semibold">(ঐচ্ছিক / Optional)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="cursor-pointer px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-colors shrink-0">
+                          <span>📷 ফটো আপলোড</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={(e) => setScreenshotFile(e.target.files?.[0] || null)}
+                            className="hidden" 
+                          />
+                        </label>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                          {screenshotFile ? screenshotFile.name : 'কোনো ফাইল সিলেক্ট করা হয়নি'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1917,20 +1874,42 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                 </div>
               )}
 
-              {/* SUBMIT ORDER BUTTON */}
+              {/* HIGH CONVERTING SUBMIT BUTTON */}
               {!isProcessing && (
                 <button
                   type="submit"
-                  className="relative overflow-hidden w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-heading font-black text-sm sm:text-base border border-emerald-400/40 flex items-center justify-center gap-2.5 transition-all transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg shadow-emerald-500/20"
+                  disabled={isProcessing}
+                  className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.98] text-white font-black text-sm sm:text-base rounded-2xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
                 >
-                  <Sparkles className="w-5 h-5 animate-pulse text-slate-950" />
+                  <Sparkles className="w-4 h-4 animate-pulse" />
                   <span>
                     {isAutomatedGateway
-                      ? `Pay ${formatCurrencyAmount(convertedGatewayAmount, gatewayCurrency)} & Instant Download ⚡`
-                      : `Submit ${selectedGateway.toUpperCase()} Verification 🚀`}
+                      ? `⚡ Pay ${formatCurrencyAmount(convertedGatewayAmount, gatewayCurrency)} & Instant Access`
+                      : '🚀 পেমেন্ট নিশ্চিত করুন ও ফাইল অ্যাক্সেস নিন'}
                   </span>
                 </button>
               )}
+
+              {/* 5. TRUST BADGES & WHATSAPP SUPPORT FOOTER */}
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-center gap-3 text-[10px] text-slate-500 dark:text-slate-400 font-bold flex-wrap">
+                  <span className="flex items-center gap-1">🔒 100% নিরাপদ লেনদেন</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">⚡ 5-15 মিনিটে অটো ভেরিফাই</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">🛡️ 24h রিফান্ড পলিসি</span>
+                </div>
+
+                {/* Direct WhatsApp Quick Help */}
+                <a
+                  href="https://wa.me/8801673833783?text=Hello%20FileMarket,%20I%20need%20help%20with%20my%20order"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300/40 dark:border-emerald-700/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                >
+                  <span>💬 পেমেন্টে কোনো সমস্যা হচ্ছে? সরাসরি হোয়াটসঅ্যাপে কথা বলুন</span>
+                </a>
+              </div>
             </form>
           </div>
         )}

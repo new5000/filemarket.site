@@ -535,32 +535,6 @@ export const MyProductsPage: React.FC<MyProductsPageProps> = ({
               )}
             </button>
           </div>
-
-          {/* Action Row: Refresh & Explore Store */}
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={refreshLocker}
-              disabled={isLoading}
-              title="Refresh from Cloud"
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-500' : ''}`} />
-              <span>Refresh</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onExploreStore();
-              }}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <span>🛍️</span>
-              <span>Browse Store</span>
-            </button>
-          </div>
         </div>
 
         {/* TAB 1: Digital Downloads */}

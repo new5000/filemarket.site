@@ -25,6 +25,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
   const siteDescription = generalConfig?.siteDescription;
   const physicalAddress = generalConfig?.physicalAddress;
   const founderWhatsapp = supportLinks?.whatsappNumber || generalConfig?.socialLinks?.whatsapp || globalConfig.branding?.whatsappNumber || '8801673833783';
+  const supportEmail = supportLinks?.supportEmail || generalConfig?.supportEmail || (globalConfig.branding as any)?.supportEmail || 'filemarket.help@gmail.com';
   const { founderAvatarUrl, founderName, founderBio, founderMessageEn, founderMessageBn, logoUrl, brandName } = useBrand();
 
   useEffect(() => {
@@ -251,26 +252,57 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
             {siteDescription || "Bangladesh's premier digital marketplace for video bundles, online courses, software, AI prompts, and Blogger templates with instant bKash & Nagad verification."}
           </p>
 
-          <div className="space-y-1.5 pt-1 text-xs">
-            <div className="flex items-start gap-2 text-slate-300">
-              <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span><strong>Address:</strong> {physicalAddress || 'Bangladesh Chittagong bayzid 4214'}</span>
-            </div>
+          {/* Contact Information Block */}
+          {(() => {
+            // Sanitize phone number to prevent double plus signs (++)
+            const rawNumber = founderWhatsapp || '8801673833783';
+            const cleanNumber = String(rawNumber).replace(/^\++/, '');
+            const formattedPhone = `+${cleanNumber}`;
+            const waDigits = cleanNumber.replace(/[^0-9]/g, '');
 
-            <div className="flex items-center gap-2 text-slate-300">
-              <img
-                src="https://lh3.googleusercontent.com/d/1941nw0eU_JIhKT_4QLuglzwuyDieb-jW"
-                alt="WhatsApp"
-                className="w-4 h-4 object-contain shrink-0"
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src =
-                    'https://drive.google.com/uc?export=view&id=1941nw0eU_JIhKT_4QLuglzwuyDieb-jW';
-                }}
-              />
-              <span><strong>Founder WhatsApp:</strong> <a href={getGeneralWhatsAppUrl(founderWhatsapp || '8801673833783')} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-white transition-colors cursor-pointer">+{founderWhatsapp || '8801673833783'}</a></span>
-            </div>
-          </div>
+            return (
+              <div className="space-y-2 pt-1 text-xs">
+                {/* 1. Physical Address */}
+                <div className="flex items-start gap-2 text-slate-400">
+                  <span className="text-emerald-500 shrink-0">📍</span>
+                  <span>
+                    <strong className="text-slate-300 font-semibold">Address:</strong>{' '}
+                    <span className="text-slate-300">{physicalAddress || 'Bangladesh Chittagong bayzid 4214'}</span>
+                  </span>
+                </div>
+
+                {/* 2. Founder WhatsApp */}
+                <div className="flex items-center gap-2 text-slate-400">
+                  <span className="text-emerald-500 shrink-0">💬</span>
+                  <span>
+                    <strong className="text-slate-300 font-semibold">Founder WhatsApp:</strong>{' '}
+                    <a
+                      href={`https://wa.me/${waDigits}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-300 hover:text-emerald-400 transition-colors font-medium cursor-pointer"
+                    >
+                      {formattedPhone}
+                    </a>
+                  </span>
+                </div>
+
+                {/* 3. Official Support Email */}
+                <div className="flex items-center gap-2 text-slate-400">
+                  <span className="text-emerald-500 shrink-0">✉️</span>
+                  <span>
+                    <strong className="text-slate-300 font-semibold">Official Email:</strong>{' '}
+                    <a 
+                      href={`mailto:${supportEmail || 'filemarket.help@gmail.com'}`}
+                      className="text-slate-300 hover:text-emerald-400 transition-colors font-medium cursor-pointer"
+                    >
+                      {supportEmail || 'filemarket.help@gmail.com'}
+                    </a>
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Categories Directory */}
