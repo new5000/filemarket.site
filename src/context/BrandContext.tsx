@@ -36,33 +36,54 @@ export const BrandProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Load cached values first
+    try {
+      const cachedLogo = localStorage.getItem('fm_logo');
+      const cachedBrand = localStorage.getItem('fm_brandName');
+      if (cachedLogo) setLogoUrl(cachedLogo);
+      if (cachedBrand) setBrandName(cachedBrand);
+    } catch(e) {}
+
     const unsubBrand = onSnapshot(doc(db, 'system_settings', 'branding'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.logoUrl) setLogoUrl(data.logoUrl);
-        if (data.headerLogoUrl) setLogoUrl(data.headerLogoUrl);
-        if (data.brandName) setBrandName(data.brandName);
-        if (data.siteTitle) setBrandName(data.siteTitle);
-        if (data.siteName) setBrandName(data.siteName);
+        let newLogo = logoUrl;
+        let newBrand = brandName;
+        if (data.logoUrl) newLogo = data.logoUrl;
+        if (data.headerLogoUrl) newLogo = data.headerLogoUrl;
+        if (data.brandName) newBrand = data.brandName;
+        if (data.siteTitle) newBrand = data.siteTitle;
+        if (data.siteName) newBrand = data.siteName;
         if (data.founderAvatarUrl) setFounderAvatarUrl(data.founderAvatarUrl);
+
+        setLogoUrl(newLogo);
+        setBrandName(newBrand);
+        try {
+          localStorage.setItem('fm_logo', newLogo);
+          localStorage.setItem('fm_brandName', newBrand);
+        } catch(e) {}
       }
       setIsLoading(false);
     }, (err) => {
-      console.error("BrandContext branding listener error:", err);
+      console.warn("BrandContext branding listener warning: using cached defaults due to quota limit.");
       setIsLoading(false);
     });
 
     const unsubGeneral = onSnapshot(doc(db, 'system_settings', 'general_config'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.headerLogoUrl) setLogoUrl(data.headerLogoUrl);
-        else if (data.logoUrl) setLogoUrl(data.logoUrl);
-        if (data.siteTitle) setBrandName(data.siteTitle);
-        else if (data.brandName) setBrandName(data.brandName);
-        else if (data.siteName) setBrandName(data.siteName);
+        let newLogo = logoUrl;
+        let newBrand = brandName;
+        if (data.headerLogoUrl) newLogo = data.headerLogoUrl;
+        else if (data.logoUrl) newLogo = data.logoUrl;
+        if (data.siteTitle) newBrand = data.siteTitle;
+        else if (data.brandName) newBrand = data.brandName;
+        else if (data.siteName) newBrand = data.siteName;
+        setLogoUrl(newLogo);
+        setBrandName(newBrand);
       }
     }, (err) => {
-      console.error("BrandContext general_config listener error:", err);
+      console.warn("BrandContext general_config listener warning.");
     });
 
     const unsubFounder = onSnapshot(doc(db, 'system_settings', 'founder_profile'), (docSnap) => {
@@ -75,7 +96,7 @@ export const BrandProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (data.founderMessageBn) setFounderMessageBn(data.founderMessageBn);
       }
     }, (err) => {
-      console.error("Founder listener error:", err);
+      console.warn("Founder listener warning.");
     });
 
     return () => {
