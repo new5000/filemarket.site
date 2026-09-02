@@ -210,6 +210,22 @@ export interface GatewayBaseConfig {
   enabled: boolean;
   mode?: 'sandbox' | 'live' | 'manual';
   currency?: string;
+  customLogo?: string; // Base64 string or image URL
+  defaultLogo?: string; // Fallback brand SVG/PNG
+}
+
+/**
+ * Standard Payment Gateway Configuration Interface
+ */
+export interface PaymentGatewayConfig {
+  id: string; // 'bkash' | 'nagad' | 'rocket' | 'upay' | 'binance' | 'stripe' | etc.
+  name: string;
+  customLogo?: string; // Base64 string or image URL
+  defaultLogo?: string; // Fallback brand SVG/PNG
+  number: string;
+  accountType: string;
+  instructions: string;
+  isEnabled: boolean;
 }
 
 export interface StripeGatewayConfig extends GatewayBaseConfig {
@@ -333,6 +349,7 @@ export interface PaymentSettingsData {
   bkash: ManualMobileGatewayConfig;
   nagad: ManualMobileGatewayConfig;
   rocket: ManualMobileGatewayConfig;
+  upay?: ManualMobileGatewayConfig;
   binance: BinanceGatewayConfig;
   bankTransfer: BankTransferGatewayConfig;
   payoneer: PayoneerGatewayConfig;

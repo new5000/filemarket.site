@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Tag, ArrowRight, Star, Loader2, Sparkles, History } from 'lucide-react';
+import { Search, X, Tag, ArrowRight, Star, Sparkles, History, Sun, Moon } from 'lucide-react';
 import { Product } from '../types';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import { db, getUserProfileFromFirestore } from '../lib/firebase';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { rankProductsWithGemini, scoreProductRelevance, AIUserProfile } from '../utils/aiRecommender';
@@ -18,10 +19,10 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
   isOpen,
   onClose,
   onSelectProduct,
-  onSelectCategory,
 }) => {
   const { products } = useProducts();
   const { currentUser } = useAuth();
+  const { darkMode, toggleTheme } = useGlobalSettings();
   const [query, setQuery] = useState('');
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
   const [results, setResults] = useState<Product[]>([]);
@@ -193,27 +194,45 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
   const chips = ['Video Bundles', 'Online Courses', 'E-Books', 'Premium Apps', 'AI Prompts', 'PHP Scripts', 'Blogger Templates'];
 
   return (
-    <div className="fixed inset-0 z-[99999] flex flex-col bg-[#0B1120] min-h-screen h-full animate-in fade-in duration-200 overflow-y-auto">
+    <div className="fixed inset-0 z-[99999] flex flex-col bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-900 dark:text-white min-h-screen h-full animate-in fade-in duration-200 overflow-y-auto transition-colors duration-300">
       
       {/* Top Header Bar */}
-      <div className="max-w-4xl w-full mx-auto p-4 sm:p-6 flex items-center justify-between border-b border-slate-800/80">
+      <div className="max-w-4xl w-full mx-auto p-4 sm:p-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 dark:border-emerald-500/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
             <Search className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-heading font-extrabold text-white text-base sm:text-lg">Smart Search &amp; Discovery</h2>
-            <p className="text-xs text-slate-400">AI-powered match for instant digital product retrieval</p>
+            <h2 className="font-heading font-extrabold text-slate-900 dark:text-white text-base sm:text-lg">Smart Search &amp; Discovery</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">AI-powered match for instant digital product retrieval</p>
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="p-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition cursor-pointer"
-          aria-label="Close search"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Top Header Action Buttons: Day/Night Mode Switch & Close */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={darkMode ? "Switch to Day Mode" : "Switch to Night Mode"}
+            aria-label={darkMode ? "Switch to Day Mode" : "Switch to Night Mode"}
+            className="p-2 sm:p-2.5 rounded-full bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 border border-slate-200 dark:border-slate-700 transition cursor-pointer flex items-center justify-center shadow-xs active:scale-95"
+          >
+            {darkMode ? (
+              <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 sm:p-2.5 rounded-full bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer flex items-center justify-center shadow-xs active:scale-95"
+            aria-label="Close search"
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Main Search Body */}
@@ -221,7 +240,7 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
         
         {/* Large Centered Input with Emerald Neon Glow */}
         <div className="relative">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-emerald-400">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-emerald-600 dark:text-emerald-400">
             <Search className="w-5 h-5" />
           </div>
           <input
@@ -230,13 +249,14 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type 'reel templates', 'saas script' or what you want to build..."
-            className="w-full bg-slate-900/90 text-white placeholder-slate-400 text-base sm:text-lg pl-12 pr-20 py-4 rounded-2xl border border-emerald-500/80 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.25)] transition-all"
+            className="w-full bg-white dark:bg-slate-900/90 text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-lg pl-12 pr-20 py-4 rounded-2xl border border-slate-200 dark:border-emerald-500/80 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm dark:shadow-[0_0_30px_rgba(16,185,129,0.25)] transition-all"
           />
           <div className="absolute right-3 top-3 bottom-3 flex items-center gap-1.5">
             {query && (
               <button
+                type="button"
                 onClick={() => setQuery('')}
-                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg bg-slate-800 transition cursor-pointer"
+                className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white rounded-lg bg-slate-100 dark:bg-slate-800 transition cursor-pointer"
               >
                 Clear
               </button>
@@ -247,16 +267,17 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
         {/* Recent Searches (Intent History) */}
         {profile.searchHistory && profile.searchHistory.length > 0 && (
           <div className="space-y-1.5">
-            <div className="flex items-center gap-1 text-xs text-slate-400">
-              <History className="w-3.5 h-3.5 text-slate-500" />
+            <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+              <History className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
               <span>Recent Queries</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {profile.searchHistory.slice(0, 5).map((term, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => setQuery(term)}
-                  className="px-2.5 py-1 rounded-lg text-xs bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800/80 transition cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg text-xs bg-white dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800/80 transition cursor-pointer shadow-xs"
                 >
                   {term}
                 </button>
@@ -267,10 +288,10 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
 
         {/* Category Chips (Filtering) directly underneath Search Input */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold px-1">
             <span>Filter by Category</span>
             {selectedChip && (
-              <button onClick={() => setSelectedChip(null)} className="text-emerald-400 hover:underline cursor-pointer">
+              <button type="button" onClick={() => setSelectedChip(null)} className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
                 Reset filter
               </button>
             )}
@@ -281,14 +302,15 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
               return (
                 <button
                   key={chip}
+                  type="button"
                   onClick={() => setSelectedChip(isSelected ? null : chip)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                     isSelected
-                       ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 ring-2 ring-emerald-400/50'
-                       : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700'
+                       ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30 ring-2 ring-emerald-400/50'
+                       : 'bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
                   }`}
                 >
-                  <Tag className="w-3.5 h-3.5 text-emerald-400" />
+                  <Tag className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>{chip}</span>
                 </button>
               );
@@ -299,9 +321,10 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
         {/* Search Results Grid immediately below category chips */}
         <div className="space-y-3 pt-2">
           {hasResultsInOtherCategories && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-sm">
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-xs">
               <span>No results in <b>{selectedChip}</b>. Found {results.length} matching products across other categories!</span>
               <button
+                type="button"
                 onClick={() => setSelectedChip(null)}
                 className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold shrink-0 transition cursor-pointer"
               >
@@ -310,22 +333,22 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
             <div className="flex items-center gap-1.5">
               <span>Matching Assets ({filteredProducts.length})</span>
               {isAiRanking ? (
-                <span className="flex items-center gap-1 text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 animate-pulse">
-                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 animate-pulse">
+                  <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                   Gemini AI Ranking...
                 </span>
               ) : !query.trim() && results.length > 0 ? (
-                <span className="flex items-center gap-1 text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 animate-fade">
-                  <Sparkles className="w-3 h-3 text-emerald-400 fill-current" />
+                <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400 fill-current" />
                   AI Personalized Recommendations
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                  <Sparkles className="w-3 h-3 text-emerald-400 fill-current" />
+                <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400 fill-current" />
                   AI Smart Ranked Match
                 </span>
               )}
@@ -337,15 +360,15 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
             {isSearching ? (
               // Skeleton Loader
               Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center gap-3.5 animate-pulse">
-                  <div className="w-16 h-16 rounded-xl bg-slate-800 shrink-0"></div>
+                <div key={idx} className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-3.5 animate-pulse shadow-xs">
+                  <div className="w-16 h-16 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
                   <div className="flex-1 space-y-2">
                     <div className="flex gap-2">
-                      <div className="h-3 w-16 bg-slate-800 rounded"></div>
-                      <div className="h-3 w-8 bg-slate-800 rounded"></div>
+                      <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                      <div className="h-3 w-8 bg-slate-200 dark:bg-slate-800 rounded"></div>
                     </div>
-                    <div className="h-4 w-3/4 bg-slate-800 rounded"></div>
-                    <div className="h-3 w-1/2 bg-slate-800 rounded"></div>
+                    <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                    <div className="h-3 w-1/2 bg-slate-200 dark:bg-slate-800 rounded"></div>
                   </div>
                 </div>
               ))
@@ -357,9 +380,9 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
                     onSelectProduct(product);
                     onClose();
                   }}
-                  className="group p-3.5 rounded-2xl bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 transition-all duration-200 cursor-pointer flex items-center gap-3.5 shadow-sm hover:shadow-lg"
+                  className="group p-3.5 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all duration-200 cursor-pointer flex items-center gap-3.5 shadow-xs hover:shadow-md"
                 >
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-950 shrink-0 relative">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 shrink-0 relative">
                     <img src={product.thumbnail || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80'} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" referrerPolicy="no-referrer" />
                     <div className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-emerald-500/90 text-slate-950 text-[9px] font-black">
                       ৳{product.priceBDT}
@@ -367,32 +390,33 @@ export const SmartSearchOverlayModal: React.FC<SmartSearchOverlayModalProps> = (
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 truncate">
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20 truncate">
                         {product.category}
                       </span>
-                      <span className="text-[10px] text-amber-400 font-bold flex items-center gap-0.5">
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
                         <Star className="w-3 h-3 fill-current" /> {product.rating}
                       </span>
                     </div>
-                    <h4 className="font-heading font-bold text-sm text-white group-hover:text-emerald-300 transition-colors truncate">
+                    <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors truncate">
                       {product.title}
                     </h4>
-                    <p className="text-xs text-slate-400 truncate">{product.description}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{product.description}</p>
                   </div>
-                  <div className="shrink-0 text-slate-500 group-hover:text-emerald-400 transition-colors">
+                  <div className="shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 </div>
               ))
             ) : (
-              <div className="col-span-full py-12 text-center space-y-3 bg-slate-900/50 rounded-2xl border border-slate-800">
-                <p className="text-slate-400 text-sm">No digital assets found matching &ldquo;{query}&rdquo;</p>
+              <div className="col-span-full py-12 text-center space-y-3 bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                <p className="text-slate-600 dark:text-slate-400 text-sm">No digital assets found matching &ldquo;{query}&rdquo;</p>
                 <button
+                  type="button"
                   onClick={() => {
                     setQuery('');
                     setSelectedChip(null);
                   }}
-                  className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer"
                 >
                   Clear Filters
                 </button>

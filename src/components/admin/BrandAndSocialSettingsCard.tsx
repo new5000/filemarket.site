@@ -211,32 +211,100 @@ export const BrandAndSocialSettingsCard = () => {
               className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
             />
           </div>
-<div><label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Header Logo URL</label>
-            <input
-              type="text"
-              value={headerLogoUrl}
-              onChange={(e) => setHeaderLogoUrl(formatDirectImageUrl(e.target.value))}
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-            />
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Header Logo URL</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={headerLogoUrl}
+                onChange={(e) => setHeaderLogoUrl(formatDirectImageUrl(e.target.value))}
+                placeholder="https://..."
+                className="flex-1 w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+              />
+              <label className="cursor-pointer shrink-0 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40 dark:border-emerald-700/40 rounded-xl text-xs font-bold flex items-center gap-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">
+                <span>📁 Upload</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (typeof reader.result === 'string') {
+                          setHeaderLogoUrl(reader.result);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
           </div>
           <div>
             <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Favicon URL</label>
-            <input
-              type="text"
-              value={faviconUrl}
-              onChange={(e) => setFaviconUrl(formatDirectImageUrl(e.target.value))}
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={faviconUrl}
+                onChange={(e) => setFaviconUrl(formatDirectImageUrl(e.target.value))}
+                placeholder="https://..."
+                className="flex-1 w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+              />
+              <label className="cursor-pointer shrink-0 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40 dark:border-emerald-700/40 rounded-xl text-xs font-bold flex items-center gap-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">
+                <span>📁 Upload</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (typeof reader.result === 'string') {
+                          setFaviconUrl(reader.result);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
           </div>
           <div className="sm:col-span-2">
             <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Founder / Admin Avatar URL</label>
-            <div className="flex gap-4">
+            <div className="flex gap-2 sm:gap-4 items-center">
               <input
                 type="url"
                 value={founderAvatarUrl}
                 onChange={(e) => setFounderAvatarUrl(formatDirectImageUrl(e.target.value))}
+                placeholder="https://..."
                 className="flex-1 w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
               />
+              <label className="cursor-pointer shrink-0 px-3 py-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40 dark:border-emerald-700/40 rounded-xl text-xs font-bold flex items-center gap-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">
+                <span>📁 Upload</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (typeof reader.result === 'string') {
+                          setFounderAvatarUrl(reader.result);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
               <div className="flex-shrink-0 relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-emerald-500/30 flex items-center justify-center">
                 <img 
                   src={founderAvatarUrl || 'https://i.ibb.co/vzR0h2M/default-avatar.png'} 

@@ -9,6 +9,8 @@ export type AdSlotKey =
   | 'previewMediaTop'
   | 'previewMediaBottom'
   // Backward compatibility aliases
+  | 'previewTopAd'
+  | 'previewBottomAd'
   | 'preFooterBanner'
   | 'footerAbsoluteBottom'
   | 'previewPageTop'
@@ -31,6 +33,7 @@ interface AdSlotRendererProps {
   showBadge?: boolean;
   onDismiss?: () => void;
   isGridCardStyle?: boolean; // When rendered inside product grid as an item card
+  darkContainer?: boolean;
 }
 
 export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
@@ -40,6 +43,7 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
   showBadge = true,
   onDismiss,
   isGridCardStyle = false,
+  darkContainer = false,
 }) => {
   const { globalConfig } = useGlobalSettings();
   const htmlContainerRef = useRef<HTMLDivElement>(null);
@@ -60,11 +64,11 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
     if (slotKey === 'footerBottomBanner' || slotKey === 'footerAbsoluteBottom') {
       return ads.footerBottomBanner || ads.footerAbsoluteBottom;
     }
-    if (slotKey === 'previewMediaTop' || slotKey === 'previewPageTop') {
-      return ads.previewMediaTop || ads.previewPageTop;
+    if (slotKey === 'previewMediaTop' || slotKey === 'previewPageTop' || slotKey === 'previewTopAd') {
+      return ads.previewMediaTop || ads.previewPageTop || ads.previewTopAd;
     }
-    if (slotKey === 'previewMediaBottom' || slotKey === 'previewPageBottom') {
-      return ads.previewMediaBottom || ads.previewPageBottom;
+    if (slotKey === 'previewMediaBottom' || slotKey === 'previewPageBottom' || slotKey === 'previewBottomAd') {
+      return ads.previewMediaBottom || ads.previewPageBottom || ads.previewBottomAd;
     }
     if (slotKey === 'homeTopBanner') {
       return ads.homeTopBanner || ads.headerBanner;
@@ -155,6 +159,7 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
   };
 
   const { containerStyle, containerClasses } = getSizeStyles();
+  const isDarkContainer = darkContainer || slotKey === 'footerBottomBanner' || slotKey === 'footerAbsoluteBottom' || slotKey === 'footerTopBanner';
 
   // 1. Script / Raw HTML Ad Type
   if (isScriptType) {
@@ -162,13 +167,12 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
 
     return (
       <div 
-        className={`w-full max-w-[728px] mx-auto my-4 px-2 flex flex-col items-center justify-center overflow-hidden rounded-2xl ${className}`}
-        style={{ contain: 'content' }}
+        className={`w-full max-w-[728px] mx-auto my-4 px-2 flex flex-col items-center justify-center ${className}`}
       >
         {/* Subtle • SPONSORED label */}
         {showBadge && (
-          <div className="w-full flex items-center justify-between px-1 mb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest select-none">
-            <span className="flex items-center gap-1.5">
+          <div className="w-full flex items-center justify-between px-1 mb-1 text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest select-none">
+            <span className="flex items-center gap-1">
               <span className="text-emerald-500 font-bold">•</span>
               {slot.badge || 'SPONSORED'}
             </span>
@@ -179,7 +183,7 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
                   setDismissed(true);
                   if (onDismiss) onDismiss();
                 }}
-                className="p-0.5 hover:text-slate-700 dark:hover:text-slate-300 transition cursor-pointer"
+                className="p-0.5 hover:text-slate-400 transition cursor-pointer"
                 title="Dismiss ad"
                 aria-label="Dismiss advertisement"
               >
@@ -189,9 +193,9 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
           </div>
         )}
 
-        {/* Ad Container Box with mobile horizontal overflow protection */}
+        {/* Frameless, clean ad element without harsh grey box */}
         <div 
-          className={`${containerClasses} flex justify-center items-center rounded-2xl bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 p-2 sm:p-3 shadow-xs max-w-full overflow-x-auto`}
+          className={`${containerClasses} w-full flex justify-center items-center overflow-x-auto rounded-xl p-0 bg-transparent border-0 shadow-none max-w-full`}
           style={containerStyle}
         >
           <div 
@@ -279,12 +283,14 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
   // Standard In-Content & Footer Container
   return (
     <div 
-      className={`w-full max-w-[728px] mx-auto my-4 px-2 flex flex-col items-center justify-center overflow-hidden rounded-2xl ${className}`}
+      className={`w-full max-w-[728px] mx-auto my-3 px-2 flex flex-col items-center justify-center overflow-hidden rounded-xl ${className}`}
       style={{ contain: 'content' }}
     >
       {/* Subtle • SPONSORED label */}
       {showBadge && (
-        <div className="w-full flex items-center justify-between px-1 mb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest select-none">
+        <div className={`w-full flex items-center justify-between px-1 mb-1.5 text-[9px] font-bold ${
+          isDarkContainer ? 'text-slate-500 dark:text-slate-600' : 'text-slate-400 dark:text-slate-500'
+        } uppercase tracking-widest select-none`}>
           <span className="flex items-center gap-1.5">
             <span className="text-emerald-500 font-bold">•</span>
             {bannerBadge}
@@ -296,7 +302,7 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
                 setDismissed(true);
                 if (onDismiss) onDismiss();
               }}
-              className="p-0.5 hover:text-slate-700 dark:hover:text-slate-300 transition cursor-pointer"
+              className="p-0.5 hover:text-slate-400 transition cursor-pointer"
               title="Dismiss ad"
               aria-label="Dismiss advertisement"
             >
@@ -311,7 +317,11 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
         href={targetHref}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${containerClasses} block rounded-2xl overflow-hidden bg-white dark:bg-[#111827] text-slate-900 dark:text-white border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-500/40 transition-all duration-300 group/ad cursor-pointer max-w-full`}
+        className={`${containerClasses} block rounded-xl overflow-hidden ${
+          isDarkContainer 
+            ? 'bg-slate-900/40 text-slate-200 border border-slate-800/60' 
+            : 'bg-white dark:bg-[#111827] text-slate-900 dark:text-white border border-slate-200/80 dark:border-slate-800'
+        } shadow-sm hover:shadow-md hover:border-emerald-500/40 transition-all duration-300 group/ad cursor-pointer max-w-full`}
         style={containerStyle}
       >
         {hasImage ? (

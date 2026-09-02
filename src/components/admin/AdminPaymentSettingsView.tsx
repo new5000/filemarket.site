@@ -43,9 +43,11 @@ import {
   SkrillLogo, 
   NagadLogo, 
   RocketLogo, 
+  UpayLogo,
   BinanceLogo, 
   BankLogo 
 } from '../icons/PaymentGatewayLogos';
+import { GatewayLogoControl } from './GatewayLogoControl';
 
 interface AdminPaymentSettingsViewProps {
   onRefresh?: () => void;
@@ -383,6 +385,15 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="stripe"
+              gatewayName="Cards / Stripe"
+              customLogo={settings.stripe.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, stripe: { ...settings.stripe, customLogo: newLogo } })}
+              renderDefaultLogo={() => <StripeLogo className="w-8 h-4" />}
+            />
+
             <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <span className="font-bold text-slate-700 dark:text-slate-300">Environment</span>
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
@@ -465,6 +476,15 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
                 <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
             </div>
+
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="paypal"
+              gatewayName="PayPal"
+              customLogo={settings.paypal.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, paypal: { ...settings.paypal, customLogo: newLogo } })}
+              renderDefaultLogo={() => <PayPalLogo className="w-8 h-4" />}
+            />
 
             <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <span className="font-bold text-slate-700 dark:text-slate-300">Environment</span>
@@ -554,6 +574,21 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
                 <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
             </div>
+
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="shurjopay"
+              gatewayName="Shurjopay"
+              customLogo={settings.shurjopay?.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ 
+                ...settings, 
+                shurjopay: { 
+                  ...(settings.shurjopay || DEFAULT_PAYMENT_SETTINGS.shurjopay), 
+                  customLogo: newLogo 
+                } 
+              })}
+              renderDefaultLogo={() => <ShurjopayLogo className="h-5 px-1 text-[10px]" />}
+            />
 
             <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <span className="font-bold text-slate-700 dark:text-slate-300">Environment</span>
@@ -676,6 +711,21 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="sslcommerz"
+              gatewayName="SSLCommerz"
+              customLogo={settings.sslcommerz?.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ 
+                ...settings, 
+                sslcommerz: { 
+                  ...(settings.sslcommerz || DEFAULT_PAYMENT_SETTINGS.sslcommerz), 
+                  customLogo: newLogo 
+                } 
+              })}
+              renderDefaultLogo={() => <SSLCommerzLogo className="h-5 px-1 text-[10px]" />}
+            />
+
             <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <span className="font-bold text-slate-700 dark:text-slate-300">Environment</span>
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
@@ -781,6 +831,21 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="aamarpay"
+              gatewayName="AamarPay"
+              customLogo={settings.aamarpay?.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ 
+                ...settings, 
+                aamarpay: { 
+                  ...(settings.aamarpay || DEFAULT_PAYMENT_SETTINGS.aamarpay), 
+                  customLogo: newLogo 
+                } 
+              })}
+              renderDefaultLogo={() => <AamarPayLogo className="h-5 px-1 text-[10px]" />}
+            />
+
             <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <span className="font-bold text-slate-700 dark:text-slate-300">Environment</span>
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
@@ -859,7 +924,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 3. Razorpay */}
+        {/* 6. Razorpay */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'international') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -879,6 +944,15 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
                 <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
             </div>
+
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="razorpay"
+              gatewayName="Razorpay"
+              customLogo={settings.razorpay.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, razorpay: { ...settings.razorpay, customLogo: newLogo } })}
+              renderDefaultLogo={() => <RazorpayLogo className="h-5 px-1 text-[10px]" />}
+            />
 
             <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <span className="font-bold text-slate-700 dark:text-slate-300">Environment</span>
@@ -923,7 +997,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 4. Paystack */}
+        {/* 7. Paystack */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'international') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -944,7 +1018,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="paystack"
+              gatewayName="Paystack"
+              customLogo={settings.paystack.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, paystack: { ...settings.paystack, customLogo: newLogo } })}
+              renderDefaultLogo={() => <PaystackLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Public Key</label>
                 <input
@@ -967,7 +1050,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 5. Flutterwave */}
+        {/* 8. Flutterwave */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'international') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -988,7 +1071,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="flutterwave"
+              gatewayName="Flutterwave"
+              customLogo={settings.flutterwave.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, flutterwave: { ...settings.flutterwave, customLogo: newLogo } })}
+              renderDefaultLogo={() => <FlutterwaveLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Public Key</label>
                 <input
@@ -1011,7 +1103,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 6. Mollie */}
+        {/* 9. Mollie */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'international') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -1032,7 +1124,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="mollie"
+              gatewayName="Mollie"
+              customLogo={settings.mollie.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, mollie: { ...settings.mollie, customLogo: newLogo } })}
+              renderDefaultLogo={() => <MollieLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Mollie API Key</label>
                 <input
@@ -1046,7 +1147,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 7. Coinbase Commerce */}
+        {/* 10. Coinbase Commerce */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'crypto') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -1067,7 +1168,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="coinbase"
+              gatewayName="Coinbase Commerce"
+              customLogo={settings.coinbase.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, coinbase: { ...settings.coinbase, customLogo: newLogo } })}
+              renderDefaultLogo={() => <CoinbaseLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Commerce API Key</label>
                 <input
@@ -1081,7 +1191,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 8. bKash */}
+        {/* 11. bKash */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'local') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -1103,7 +1213,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="bkash"
+              gatewayName="bKash"
+              customLogo={settings.bkash.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, bkash: { ...settings.bkash, customLogo: newLogo } })}
+              renderDefaultLogo={() => <BkashLogo className="w-6 h-6" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Merchant / Agent / Personal Number</label>
                 <input
@@ -1135,7 +1254,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 9. Nagad */}
+        {/* 12. Nagad */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'local') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -1156,7 +1275,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="nagad"
+              gatewayName="Nagad"
+              customLogo={settings.nagad.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, nagad: { ...settings.nagad, customLogo: newLogo } })}
+              renderDefaultLogo={() => <NagadLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Merchant / Personal Number</label>
                 <input
@@ -1188,7 +1316,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 10. Rocket */}
+        {/* 13. Rocket */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'local') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -1209,7 +1337,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="rocket"
+              gatewayName="Rocket"
+              customLogo={settings.rocket.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, rocket: { ...settings.rocket, customLogo: newLogo } })}
+              renderDefaultLogo={() => <RocketLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Rocket Number (+ 12th Check Digit)</label>
                 <input
@@ -1232,7 +1369,101 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 11. Binance Pay */}
+        {/* 14. Upay */}
+        {(activeCategoryFilter === 'all' || activeCategoryFilter === 'local') && (
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UpayLogo className="h-7 px-2" />
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold">
+                  UCB Mobile
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.upay?.enabled ?? false}
+                  onChange={(e) => setSettings({ 
+                    ...settings, 
+                    upay: { 
+                      ...(settings.upay || { enabled: false, merchantNumber: '', type: 'Personal', instructions: '' }), 
+                      enabled: e.target.checked 
+                    } 
+                  })}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="upay"
+              gatewayName="Upay"
+              customLogo={settings.upay?.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ 
+                ...settings, 
+                upay: { 
+                  ...(settings.upay || { enabled: false, merchantNumber: '', type: 'Personal', instructions: '' }), 
+                  customLogo: newLogo 
+                } 
+              })}
+              renderDefaultLogo={() => <UpayLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Upay Number</label>
+                <input
+                  type="text"
+                  value={settings.upay?.merchantNumber || ''}
+                  onChange={(e) => setSettings({ 
+                    ...settings, 
+                    upay: { 
+                      ...(settings.upay || { enabled: false, merchantNumber: '', type: 'Personal', instructions: '' }), 
+                      merchantNumber: e.target.value 
+                    } 
+                  })}
+                  placeholder="01XXXXXXXXX"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-xs font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Account Type Tag</label>
+                <input
+                  type="text"
+                  value={settings.upay?.type || 'Personal / Send Money'}
+                  onChange={(e) => setSettings({ 
+                    ...settings, 
+                    upay: { 
+                      ...(settings.upay || { enabled: false, merchantNumber: '', type: 'Personal', instructions: '' }), 
+                      type: e.target.value 
+                    } 
+                  })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Payment Instructions</label>
+                <textarea
+                  rows={2}
+                  value={settings.upay?.instructions || ''}
+                  onChange={(e) => setSettings({ 
+                    ...settings, 
+                    upay: { 
+                      ...(settings.upay || { enabled: false, merchantNumber: '', type: 'Personal', instructions: '' }), 
+                      instructions: e.target.value 
+                    } 
+                  })}
+                  placeholder="Instructions for customer sending money via Upay"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 15. Binance Pay */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'crypto') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -1253,7 +1484,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="binance"
+              gatewayName="Binance Pay"
+              customLogo={settings.binance.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, binance: { ...settings.binance, customLogo: newLogo } })}
+              renderDefaultLogo={() => <BinanceLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Binance Pay ID</label>
                 <input
@@ -1276,7 +1516,7 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
           </div>
         )}
 
-        {/* 12. Bank Wire / Transfer */}
+        {/* 16. Bank Wire / Transfer */}
         {(activeCategoryFilter === 'all' || activeCategoryFilter === 'local' || activeCategoryFilter === 'international') && (
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 space-y-3.5">
             <div className="flex items-center justify-between">
@@ -1297,7 +1537,16 @@ export const AdminPaymentSettingsView: React.FC<AdminPaymentSettingsViewProps> =
               </label>
             </div>
 
-            <div className="space-y-2 text-xs pt-1">
+            {/* Custom Logo Row */}
+            <GatewayLogoControl
+              gatewayId="bank"
+              gatewayName="Bank Transfer"
+              customLogo={settings.bankTransfer.customLogo}
+              onChangeCustomLogo={(newLogo) => setSettings({ ...settings, bankTransfer: { ...settings.bankTransfer, customLogo: newLogo } })}
+              renderDefaultLogo={() => <BankLogo className="h-5 px-1 text-[10px]" />}
+            />
+
+            <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Bank Name</label>

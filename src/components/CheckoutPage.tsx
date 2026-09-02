@@ -44,8 +44,10 @@ import {
   CoinbaseLogo, 
   NagadLogo, 
   RocketLogo, 
+  UpayLogo,
   BinanceLogo, 
-  BankLogo 
+  BankLogo,
+  PaymentGatewayLogo
 } from './icons/PaymentGatewayLogos';
 import { Footer } from './Footer';
 import { Header } from './Header';
@@ -388,6 +390,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       selectedGateway === 'bkash' || 
       selectedGateway === 'nagad' || 
       selectedGateway === 'rocket' || 
+      selectedGateway === 'upay' || 
       selectedGateway === 'shurjopay' || 
       selectedGateway === 'sslcommerz' || 
       selectedGateway === 'aamarpay'
@@ -507,7 +510,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setProcessingStatusText(
         isAutomatedGateway
           ? `[ ⚡ Connecting to ${selectedGateway.toUpperCase()} Secure API Gateway... ]`
-          : '[ ⚡ Registering Payment Verification in System Ledger... ]'
+          : '[ ⚡ Verifying Transaction Details... ]'
       );
     }
 
@@ -548,15 +551,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         ? `${selectedGateway.toUpperCase()}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
         : trxId.trim();
 
+      // 1. Safe Client-Side Image Processing & Upload (Fail-safe, never blocks indefinitely)
       let uploadedScreenshotUrl: string | null = null;
       if (screenshotFile) {
-        setProcessingStatusText('[ 📸 Uploading Payment Proof Screenshot to Cloud Storage... ]');
+        setProcessingStatusText('[ 📸 Processing Receipt Image & Attaching Proof... ]');
         try {
           uploadedScreenshotUrl = await uploadPaymentReceipt(screenshotFile, generatedTrxId);
         } catch (uploadErr) {
-          console.warn("Screenshot upload warning:", uploadErr);
+          console.warn("Screenshot upload warning (fail-safe bypassed):", uploadErr);
         }
       }
+
+      setProcessingStatusText('[ ⚡ Registering Payment Verification in System Ledger... ]');
 
       const result = await createOrderAndFulfill({
         productId: activeProduct.id,
@@ -589,7 +595,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         discountAmountUSD: discountUSD
       });
 
-      // Dispatch Telegram Notification for Admin
+      // Dispatch Telegram Notification for Admin in background
       try {
         const BOT_TOKEN = "8293279827:AAFn12Cb-NKOHkv2rdhLjLcm8gdNkqkcKQ8";
         const CHAT_ID = "5570892539";
@@ -608,7 +614,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
 ⏰ *Time:* ${new Date().toLocaleTimeString()}
 ━━━━━━━━━━━━━━━━━━━━━`;
 
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -623,6 +629,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
         console.warn("Telegram dispatch error:", tgErr);
       }
 
+      // Smooth transition to Success / Order Pending Screen
       setCompletedOrder({
         orderId: result.orderId,
         status: result.status,
@@ -636,6 +643,8 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
       setCheckoutError(err?.message || "Payment verification failed. Please try again.");
     } finally {
       setIsProcessing(false);
+      // Safety guard to ensure spinner NEVER hangs under any circumstances
+      setTimeout(() => setIsProcessing(false), 2000);
     }
   };
 
@@ -938,47 +947,93 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
           </div>
         )}
 
-        {/* TOTAL PAYABLE HIGHLIGHT WITH BREAKDOWN */}
-        <div className="rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-4 sm:p-5 shadow-sm space-y-3">
-          {/* Item Breakdown */}
-          <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-            <div className="flex items-center justify-between">
-              <span>Subtotal ({quantity} {quantity > 1 ? 'items' : 'item'}):</span>
-              <span className="font-bold text-slate-900 dark:text-white">৳{subtotalBDT.toLocaleString('en-BD')} (${subtotalUSD})</span>
+        {/* COUPON / PROMO CODE SECTION */}
+        <div className="p-4 rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag className="w-4 h-4 text-emerald-500" />
+              <span className="font-heading font-bold text-xs sm:text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+                Discount Coupon / Promo Code
+              </span>
             </div>
-            {isPhysical && (
-              <div className="flex items-center justify-between">
-                <span>Shipping &amp; Logistics:</span>
-                <span className="font-bold text-slate-900 dark:text-white">+৳{shippingCostBDT} (+${shippingCostUSD})</span>
-              </div>
-            )}
-            {discountBDT > 0 && (
-              <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-bold">
-                <span>Coupon Discount ({appliedCoupon?.coupon?.code}):</span>
-                <span>-৳{discountBDT.toLocaleString('en-BD')} (-${discountUSD})</span>
-              </div>
+            {appliedCoupon?.valid && (
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
+                Applied: {appliedCoupon.coupon?.code}
+              </span>
             )}
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-between">
-            <div>
-              <span className="font-heading font-extrabold text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
-                Total Payable Amount
-              </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                Converted for {selectedGateway.toUpperCase()}
-              </span>
+          {appliedCoupon?.valid ? (
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                <div>
+                  <div className="font-black tracking-wider uppercase flex items-center gap-1.5">
+                    <span>{appliedCoupon.coupon?.code}</span>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                      {appliedCoupon.coupon?.discountType === 'percent' || (appliedCoupon.coupon as any)?.discountType === 'percentage' || (appliedCoupon.coupon as any)?.type === 'percentage'
+                        ? `${appliedCoupon.coupon?.discountValue}% OFF` 
+                        : `৳${appliedCoupon.coupon?.discountValue} FLAT OFF`}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-emerald-600/90 dark:text-emerald-400/90 block mt-0.5">
+                    {appliedCoupon.message || `Saved ৳${discountBDT.toLocaleString('en-BD')}`}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveCoupon}
+                className="px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
+              >
+                Remove
+              </button>
             </div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
-              {formatCurrencyAmount(convertedGatewayAmount, gatewayCurrency)}
-              {gatewayCurrency !== 'BDT' && (
-                <span className="text-xs font-normal text-slate-400 block text-right font-mono">
-                  (≈ ৳{totalBDT} BDT)
-                </span>
+          ) : (
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleApplyCoupon();
+              }} 
+              className="flex gap-2"
+            >
+              <input
+                type="text"
+                value={couponInput}
+                onChange={(e) => {
+                  setCouponInput(e.target.value.toUpperCase());
+                  if (couponMessage) setCouponMessage(null);
+                }}
+                placeholder="Enter Promo Code (e.g. WELCOME50)"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 font-mono text-xs uppercase tracking-wider font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <button
+                type="submit"
+                disabled={!couponInput.trim()}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
+              >
+                Apply
+              </button>
+            </form>
+          )}
+
+          {couponMessage && (
+            <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl ${
+              couponMessage.isError 
+                ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20' 
+                : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+            }`}>
+              {couponMessage.isError ? (
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <Check className="w-3.5 h-3.5 shrink-0" />
               )}
+              <span>{couponMessage.text}</span>
             </div>
-          </div>
+          )}
         </div>
+
+
 
         {/* AUTHENTICATION GUARD WARNING BANNER */}
         {(!authStatus.isLoggedIn || (!authStatus.isEmailVerified && !authStatus.isGoogleUser)) && (
@@ -1181,7 +1236,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-indigo-500/30'
                       }`}
                     >
-                      <StripeLogo className="w-12 h-6" />
+                      <PaymentGatewayLogo gatewayId="stripe" customLogo={paymentSettings.stripe?.customLogo} className="w-12 h-6" />
                       <span className="text-[11px] font-black">Credit / Debit</span>
                     </button>
                   )}
@@ -1197,7 +1252,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
                       }`}
                     >
-                      <PayPalLogo className="w-12 h-6" />
+                      <PaymentGatewayLogo gatewayId="paypal" customLogo={paymentSettings.paypal?.customLogo} className="w-12 h-6" />
                       <span className="text-[11px] font-black">PayPal</span>
                     </button>
                   )}
@@ -1213,7 +1268,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-orange-500/30'
                       }`}
                     >
-                      <ShurjopayLogo className="h-6 px-1.5" />
+                      <PaymentGatewayLogo gatewayId="shurjopay" customLogo={paymentSettings.shurjopay?.customLogo} className="h-6 px-1.5" />
                       <span className="text-[11px] font-black text-[#EB5A28]">Shurjopay (BD)</span>
                     </button>
                   )}
@@ -1229,7 +1284,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-red-500/30'
                       }`}
                     >
-                      <SSLCommerzLogo className="h-6 px-1.5" />
+                      <PaymentGatewayLogo gatewayId="sslcommerz" customLogo={paymentSettings.sslcommerz?.customLogo} className="h-6 px-1.5" />
                       <span className="text-[11px] font-black text-[#E31B23]">SSLCommerz</span>
                     </button>
                   )}
@@ -1245,7 +1300,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-cyan-500/30'
                       }`}
                     >
-                      <AamarPayLogo className="h-6 px-1.5" />
+                      <PaymentGatewayLogo gatewayId="aamarpay" customLogo={paymentSettings.aamarpay?.customLogo} className="h-6 px-1.5" />
                       <span className="text-[11px] font-black text-[#0A88BA]">AamarPay</span>
                     </button>
                   )}
@@ -1261,7 +1316,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-600/30'
                       }`}
                     >
-                      <RazorpayLogo className="h-6 px-1.5" />
+                      <PaymentGatewayLogo gatewayId="razorpay" customLogo={paymentSettings.razorpay?.customLogo} className="h-6 px-1.5" />
                       <span className="text-[11px] font-black">UPI / NetBank</span>
                     </button>
                   )}
@@ -1277,7 +1332,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
                       }`}
                     >
-                      <CoinbaseLogo className="h-6 px-1 text-[10px]" />
+                      <PaymentGatewayLogo gatewayId="coinbase" customLogo={paymentSettings.coinbase?.customLogo} className="h-6 px-1 text-[10px]" />
                       <span className="text-[11px] font-black">Crypto Asset</span>
                     </button>
                   )}
@@ -1293,7 +1348,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-sky-500/30'
                       }`}
                     >
-                      <PaystackLogo className="h-6 px-2 text-[10px]" />
+                      <PaymentGatewayLogo gatewayId="paystack" customLogo={paymentSettings.paystack?.customLogo} className="h-6 px-2 text-[10px]" />
                       <span className="text-[11px] font-black">Paystack</span>
                     </button>
                   )}
@@ -1309,7 +1364,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-amber-500/30'
                       }`}
                     >
-                      <FlutterwaveLogo className="h-6 px-2 text-[10px]" />
+                      <PaymentGatewayLogo gatewayId="flutterwave" customLogo={paymentSettings.flutterwave?.customLogo} className="h-6 px-2 text-[10px]" />
                       <span className="text-[11px] font-black">Flutterwave</span>
                     </button>
                   )}
@@ -1325,7 +1380,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-500/30'
                       }`}
                     >
-                      <MollieLogo className="h-6 px-2 text-[10px]" />
+                      <PaymentGatewayLogo gatewayId="mollie" customLogo={paymentSettings.mollie?.customLogo} className="h-6 px-2 text-[10px]" />
                       <span className="text-[11px] font-black">iDEAL / EU</span>
                     </button>
                   )}
@@ -1350,7 +1405,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-pink-500/30'
                       }`}
                     >
-                      <BkashLogo className="w-7 h-7" />
+                      <PaymentGatewayLogo gatewayId="bkash" customLogo={paymentSettings.bkash?.customLogo} className="w-7 h-7" />
                       <span className="text-[11px] font-black text-[#E2136E]">bKash (BD)</span>
                     </button>
                   )}
@@ -1366,7 +1421,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-orange-500/30'
                       }`}
                     >
-                      <NagadLogo className="h-6 px-1 text-[10px]" />
+                      <PaymentGatewayLogo gatewayId="nagad" customLogo={paymentSettings.nagad?.customLogo} className="h-6 px-1 text-[10px]" />
                       <span className="text-[11px] font-black text-[#F7931E]">Nagad (BD)</span>
                     </button>
                   )}
@@ -1382,8 +1437,24 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-purple-500/30'
                       }`}
                     >
-                      <RocketLogo className="h-6 px-1 text-[10px]" />
+                      <PaymentGatewayLogo gatewayId="rocket" customLogo={paymentSettings.rocket?.customLogo} className="h-6 px-1 text-[10px]" />
                       <span className="text-[11px] font-black text-[#8C3494]">Rocket (DBBL)</span>
+                    </button>
+                  )}
+
+                  {/* Upay */}
+                  {paymentSettings.upay?.enabled && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGateway('upay')}
+                      className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                        selectedGateway === 'upay'
+                          ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-600/40 scale-[1.02]'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
+                      }`}
+                    >
+                      <PaymentGatewayLogo gatewayId="upay" customLogo={paymentSettings.upay?.customLogo} className="h-6 px-1 text-[10px]" />
+                      <span className="text-[11px] font-black text-[#002D62] dark:text-[#FBBF24]">Upay (UCB)</span>
                     </button>
                   )}
 
@@ -1398,7 +1469,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-amber-500/30'
                       }`}
                     >
-                      <BinanceLogo className="h-6 px-1 text-[10px]" />
+                      <PaymentGatewayLogo gatewayId="binance" customLogo={paymentSettings.binance?.customLogo} className="h-6 px-1 text-[10px]" />
                       <span className="text-[11px] font-black">Binance Pay</span>
                     </button>
                   )}
@@ -1414,7 +1485,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-500/30'
                       }`}
                     >
-                      <BankLogo className="h-6 px-1 text-[10px]" />
+                      <PaymentGatewayLogo gatewayId="bank" customLogo={paymentSettings.bankTransfer?.customLogo} className="h-6 px-1 text-[10px]" />
                       <span className="text-[11px] font-black">Bank Transfer</span>
                     </button>
                   )}
@@ -1431,9 +1502,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-emerald-500/30'
                       }`}
                     >
-                      <div className="w-6 h-6 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-[10px]">
-                        {customGw.name.substring(0, 2).toUpperCase()}
-                      </div>
+                      <PaymentGatewayLogo gatewayId={customGw.id} customLogo={customGw.iconUrl} name={customGw.name} className="w-6 h-6 rounded" />
                       <span className="text-[11px] font-black truncate max-w-[90px]">{customGw.name}</span>
                     </button>
                   ))}
@@ -1737,6 +1806,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                         {selectedGateway === 'bkash' ? 'bKash Merchant / Personal:'
                           : selectedGateway === 'nagad' ? 'Nagad Personal / Agent:'
                           : selectedGateway === 'rocket' ? 'DBBL Rocket Number:'
+                          : selectedGateway === 'upay' ? 'Upay (UCB) Number:'
                           : selectedGateway === 'binance' ? 'Binance Pay ID (USDT):'
                           : selectedGateway === 'bankTransfer' ? 'Bank Wire Details:'
                           : selectedCustomGateway ? `${selectedCustomGateway.name} Account:` : 'Account Number:'}
@@ -1751,6 +1821,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                         {selectedGateway === 'bkash' ? paymentSettings.bkash.merchantNumber
                           : selectedGateway === 'nagad' ? paymentSettings.nagad.merchantNumber
                           : selectedGateway === 'rocket' ? paymentSettings.rocket.merchantNumber
+                          : selectedGateway === 'upay' ? paymentSettings.upay?.merchantNumber
                           : selectedGateway === 'binance' ? paymentSettings.binance.payId
                           : selectedGateway === 'bankTransfer' ? `${paymentSettings.bankTransfer.bankName} - ${paymentSettings.bankTransfer.accountNumber}`
                           : selectedCustomGateway ? selectedCustomGateway.accountDetails : ''}
@@ -1761,6 +1832,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                           selectedGateway === 'bkash' ? paymentSettings.bkash.merchantNumber
                           : selectedGateway === 'nagad' ? paymentSettings.nagad.merchantNumber
                           : selectedGateway === 'rocket' ? paymentSettings.rocket.merchantNumber
+                          : selectedGateway === 'upay' ? (paymentSettings.upay?.merchantNumber || '')
                           : selectedGateway === 'binance' ? paymentSettings.binance.payId
                           : selectedGateway === 'bankTransfer' ? paymentSettings.bankTransfer.accountNumber
                           : selectedCustomGateway ? selectedCustomGateway.accountDetails : ''
@@ -1776,6 +1848,7 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
                       👉 {selectedGateway === 'bkash' ? paymentSettings.bkash.instructions
                         : selectedGateway === 'nagad' ? paymentSettings.nagad.instructions
                         : selectedGateway === 'rocket' ? paymentSettings.rocket.instructions
+                        : selectedGateway === 'upay' ? (paymentSettings.upay?.instructions || 'Send Money / Payment to the above Upay number.')
                         : selectedGateway === 'binance' ? paymentSettings.binance.instructions
                         : selectedGateway === 'bankTransfer' ? paymentSettings.bankTransfer.instructions
                         : selectedCustomGateway ? selectedCustomGateway.instructions : 'Send payment and submit reference.'}
@@ -1784,37 +1857,40 @@ ${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAd
 
                   {/* Input Fields */}
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-heading font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                        Sender Mobile Number / Sender Account:
+                    {/* 1. Sender Number / Account Field */}
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
+                        {selectedGateway === 'binance' ? 'Sender Binance ID / Email' : 'Sender Mobile Number'}
                       </label>
                       <input
                         type="text"
                         required
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="e.g. 017XXXXXXXX / Sender Account / Binance Name"
-                        className="w-full px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                        placeholder={selectedGateway === 'binance' ? 'e.g. 123456789' : '01XXXXXXXXX'}
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-heading font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                        Transaction ID (TrxID) / Reference Number:
+                    {/* 2. Transaction ID Field */}
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
+                        Transaction ID (TrxID)
                       </label>
                       <input
                         type="text"
                         required
                         value={trxId}
                         onChange={(e) => setTrxId(e.target.value)}
-                        placeholder="e.g. 9N87B654321 / Ref"
-                        className="w-full px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase font-bold"
+                        placeholder="e.g. BL7A89XC21"
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all uppercase tracking-wide"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-heading font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        Payment Screenshot / Receipt (Optional):
+                    {/* 3. Screenshot Receipt Field */}
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
+                        Payment Screenshot / Receipt (Optional)
                       </label>
                       <input
                         type="file"

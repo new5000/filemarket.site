@@ -138,3 +138,117 @@ export const AamarPayLogo: React.FC<LogoProps> = ({ className = 'w-6 h-6' }) => 
   </div>
 );
 
+export const UpayLogo: React.FC<LogoProps> = ({ className = 'w-6 h-6', size }) => (
+  <div 
+    className={`flex items-center justify-center gap-0.5 bg-[#002D62] text-white rounded-lg px-1.5 py-0.5 font-black text-xs shadow-sm ${className}`}
+    style={size ? { width: size, height: typeof size === 'number' ? size * 0.42 : size } : undefined}
+  >
+    <span className="font-heading font-extrabold text-[#FBBF24] text-[12px] lowercase tracking-tighter">u</span>
+    <span className="font-heading font-extrabold text-white text-[12px] lowercase tracking-tighter">pay</span>
+  </div>
+);
+
+export interface PaymentGatewayLogoProps {
+  gatewayId: string;
+  customLogo?: string;
+  className?: string;
+  size?: number | string;
+  name?: string;
+  fallbackText?: string;
+}
+
+export const PaymentGatewayLogo: React.FC<PaymentGatewayLogoProps> = ({
+  gatewayId,
+  customLogo,
+  className = 'w-6 h-6',
+  size,
+  name,
+  fallbackText,
+}) => {
+  const [imgError, setImgError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [customLogo]);
+
+  if (customLogo && !imgError) {
+    return (
+      <img
+        src={customLogo}
+        alt={name || gatewayId}
+        className={`${className} object-contain rounded-md`}
+        style={size ? { width: size, height: size } : undefined}
+        referrerPolicy="no-referrer"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  const normalizedId = gatewayId.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  switch (normalizedId) {
+    case 'bkash':
+      // Dynamic Bkash SVG
+      return (
+        <svg viewBox="0 0 100 100" className={className} style={size ? { width: size, height: size } : undefined} fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="50" fill="#E2136E" />
+          <polygon points="43.7,48.7 21.8,20.3 51.1,23.7" fill="#FFFFFF" />
+          <polygon points="21.8,20.3 20.8,25.1 33.5,36.2" fill="#FFFFFF" />
+          <polygon points="43.7,48.7 51.1,23.7 65.2,41.2" fill="#FFFFFF" />
+          <polygon points="65.2,41.2 84.8,44.2 78.0,44.5" fill="#FFFFFF" />
+          <polygon points="65.2,41.2 78.0,44.5 72.6,52.8 43.7,48.7" fill="#FFFFFF" />
+          <polygon points="43.7,48.7 72.6,52.8 47.9,65.0" fill="#FFFFFF" />
+          <polygon points="43.7,48.7 47.9,65.0 34.9,79.6" fill="#FFFFFF" />
+        </svg>
+      );
+    case 'nagad':
+      return <NagadLogo className={className} size={size} />;
+    case 'rocket':
+      return <RocketLogo className={className} size={size} />;
+    case 'upay':
+      return <UpayLogo className={className} size={size} />;
+    case 'binance':
+    case 'binancepay':
+      return <BinanceLogo className={className} size={size} />;
+    case 'stripe':
+    case 'card':
+    case 'cards':
+    case 'creditdebit':
+      return <StripeLogo className={className} size={size} />;
+    case 'paypal':
+      return <PayPalLogo className={className} size={size} />;
+    case 'shurjopay':
+      return <ShurjopayLogo className={className} size={size} />;
+    case 'sslcommerz':
+      return <SSLCommerzLogo className={className} size={size} />;
+    case 'aamarpay':
+      return <AamarPayLogo className={className} size={size} />;
+    case 'razorpay':
+      return <RazorpayLogo className={className} size={size} />;
+    case 'coinbase':
+      return <CoinbaseLogo className={className} size={size} />;
+    case 'paystack':
+      return <PaystackLogo className={className} size={size} />;
+    case 'flutterwave':
+      return <FlutterwaveLogo className={className} size={size} />;
+    case 'mollie':
+      return <MollieLogo className={className} size={size} />;
+    case 'mercadopago':
+      return <MercadoPagoLogo className={className} size={size} />;
+    case 'skrill':
+      return <SkrillLogo className={className} size={size} />;
+    case 'banktransfer':
+    case 'bank':
+      return <BankLogo className={className} size={size} />;
+    default:
+      return (
+        <div
+          className={`flex items-center justify-center bg-slate-800 text-white rounded-md font-bold text-[10px] ${className}`}
+          style={size ? { width: size, height: size } : undefined}
+        >
+          {fallbackText || name?.substring(0, 2).toUpperCase() || gatewayId.substring(0, 2).toUpperCase()}
+        </div>
+      );
+  }
+};
+

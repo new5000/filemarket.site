@@ -57,7 +57,6 @@ export const SavedProductsPage: React.FC<SavedProductsPageProps> = ({
   }, [isOpen]);
 
   const handleInstantBuy = (product: Product) => {
-    onClose();
     if (onInstantBuy) {
       onInstantBuy(product);
     } else {
@@ -72,7 +71,6 @@ export const SavedProductsPage: React.FC<SavedProductsPageProps> = ({
   };
 
   const handleViewDetails = (product: Product) => {
-    onClose();
     if (onViewDetails) {
       onViewDetails(product);
     } else {

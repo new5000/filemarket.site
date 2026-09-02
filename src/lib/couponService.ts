@@ -161,19 +161,23 @@ export function validateCoupon(
     return { valid: false, message: 'Please enter a coupon code', discountBDT: 0, discountUSD: 0 };
   }
 
-  const coupon = couponsList.find((c) => c.code.toUpperCase() === cleanCode);
+  const coupon = couponsList.find((c: any) => (c.code || '').trim().toUpperCase() === cleanCode);
   if (!coupon) {
-    return { valid: false, message: `Coupon "${cleanCode}" is invalid or does not exist.`, discountBDT: 0, discountUSD: 0 };
+    return { valid: false, message: 'Invalid or inactive coupon code', discountBDT: 0, discountUSD: 0 };
   }
 
-  if (!coupon.enabled) {
-    return { valid: false, message: `Coupon "${cleanCode}" has been disabled.`, discountBDT: 0, discountUSD: 0 };
+  const isEnabled = (coupon as any).status !== undefined 
+    ? (coupon as any).status === 'active' 
+    : (coupon.enabled !== false);
+
+  if (!isEnabled) {
+    return { valid: false, message: 'Invalid or inactive coupon code', discountBDT: 0, discountUSD: 0 };
   }
 
   if (coupon.expiryDate) {
     const expiry = new Date(coupon.expiryDate).getTime();
     if (!isNaN(expiry) && expiry < Date.now()) {
-      return { valid: false, message: `Coupon "${cleanCode}" expired on ${coupon.expiryDate}.`, discountBDT: 0, discountUSD: 0 };
+      return { valid: false, message: 'This coupon has expired', discountBDT: 0, discountUSD: 0 };
     }
   }
 
@@ -181,10 +185,11 @@ export function validateCoupon(
     return { valid: false, message: `Coupon "${cleanCode}" has reached its maximum usage limit.`, discountBDT: 0, discountUSD: 0 };
   }
 
-  if (coupon.minOrderBDT && totalBDT < coupon.minOrderBDT) {
+  const minOrder = (coupon as any).minOrder || coupon.minOrderBDT || 0;
+  if (minOrder > 0 && totalBDT < minOrder) {
     return { 
       valid: false, 
-      message: `Minimum order amount of ৳${coupon.minOrderBDT} BDT required for coupon "${cleanCode}".`, 
+      message: `Minimum order amount is ৳${minOrder}`, 
       discountBDT: 0, 
       discountUSD: 0 
     };
@@ -193,19 +198,20 @@ export function validateCoupon(
   // Calculate discount
   let discountBDT = 0;
   let discountUSD = 0;
+  const isPercent = coupon.discountType === 'percent' || (coupon as any).discountType === 'percentage' || (coupon as any).type === 'percentage' || (coupon as any).type === 'percent';
 
-  if (coupon.discountType === 'percent') {
+  if (isPercent) {
     discountBDT = Math.round((totalBDT * coupon.discountValue) / 100);
     discountUSD = Math.round(((totalUSD * coupon.discountValue) / 100) * 100) / 100;
   } else {
-    // Fixed amount
+    // Fixed / Flat amount
     discountBDT = Math.min(coupon.discountValue, totalBDT);
     discountUSD = Math.min(Math.round(coupon.discountValue / 120 * 100) / 100, totalUSD);
   }
 
   return {
     valid: true,
-    message: `🎉 Coupon "${coupon.code}" applied! You saved ${coupon.discountType === 'percent' ? `${coupon.discountValue}%` : `৳${discountBDT}`}.`,
+    message: `Coupon applied! Saved ৳${discountBDT.toLocaleString('en-BD')}`,
     coupon,
     discountBDT,
     discountUSD

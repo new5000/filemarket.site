@@ -112,6 +112,14 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettingsData = {
     instructions: 'Go to Dutch-Bangla Rocket App or dial *322# -> Select "Send Money" -> Enter Rocket Number -> Enter Amount -> Enter PIN -> Submit Transaction ID.',
     qrCodeUrl: ''
   },
+  upay: {
+    enabled: true,
+    mode: 'manual',
+    merchantNumber: '01673833783',
+    type: 'Personal / Send Money',
+    instructions: 'Go to Upay App or dial *268# -> Select "Send Money" -> Enter Upay Number -> Enter Amount -> Enter PIN to confirm -> Submit Transaction ID below.',
+    qrCodeUrl: ''
+  },
   binance: {
     enabled: true,
     mode: 'manual',
@@ -193,6 +201,7 @@ export function subscribePaymentSettings(callback: (settings: PaymentSettingsDat
           bkash: { ...DEFAULT_PAYMENT_SETTINGS.bkash, ...data.bkash },
           nagad: { ...DEFAULT_PAYMENT_SETTINGS.nagad, ...data.nagad },
           rocket: { ...DEFAULT_PAYMENT_SETTINGS.rocket, ...data.rocket },
+          upay: { ...DEFAULT_PAYMENT_SETTINGS.upay, ...(data.upay || {}) },
           binance: { ...DEFAULT_PAYMENT_SETTINGS.binance, ...data.binance },
           bankTransfer: { ...DEFAULT_PAYMENT_SETTINGS.bankTransfer, ...data.bankTransfer },
           payoneer: { ...DEFAULT_PAYMENT_SETTINGS.payoneer, ...data.payoneer },
@@ -249,6 +258,7 @@ export async function fetchPaymentSettings(): Promise<PaymentSettingsData> {
         bkash: { ...DEFAULT_PAYMENT_SETTINGS.bkash, ...data.bkash },
         nagad: { ...DEFAULT_PAYMENT_SETTINGS.nagad, ...data.nagad },
         rocket: { ...DEFAULT_PAYMENT_SETTINGS.rocket, ...data.rocket },
+        upay: { ...DEFAULT_PAYMENT_SETTINGS.upay, ...(data.upay || {}) },
         binance: { ...DEFAULT_PAYMENT_SETTINGS.binance, ...data.binance },
         bankTransfer: { ...DEFAULT_PAYMENT_SETTINGS.bankTransfer, ...data.bankTransfer },
         payoneer: { ...DEFAULT_PAYMENT_SETTINGS.payoneer, ...data.payoneer },

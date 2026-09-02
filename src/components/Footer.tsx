@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Phone, MapPin, MessageCircle, ShieldCheck, X, ZoomIn } from 'lucide-react';
 import { CATEGORIES } from '../data/products';
 import { BkashLogo } from './icons/BkashLogo';
+import { PaymentGatewayLogo } from './icons/PaymentGatewayLogos';
+import { subscribePaymentSettings, DEFAULT_PAYMENT_SETTINGS, PaymentSettingsData } from '../lib/paymentService';
 import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import AnimatedBrandTitle from './AnimatedBrandTitle';
 import { useBrand } from '../context/BrandContext';
 import { handleDirectWhatsAppChat, getGeneralWhatsAppUrl } from '../utils/whatsapp';
 import { formatDirectImageUrl } from '../utils/formatImageUrl';
+import { AdSlotRenderer } from './ads/AdSlotRenderer';
 
 interface FooterProps {
   onSelectCategory: (cat: string) => void;
@@ -16,6 +19,7 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudio, onOpenPolicy }) => {
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettingsData>(DEFAULT_PAYMENT_SETTINGS);
   const { globalConfig, generalConfig, supportLinks } = useGlobalSettings();
   const { siteName, tagline } = globalConfig.branding as any;
   const siteDescription = generalConfig?.siteDescription;
@@ -23,8 +27,15 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
   const founderWhatsapp = supportLinks?.whatsappNumber || generalConfig?.socialLinks?.whatsapp || globalConfig.branding?.whatsappNumber || '8801673833783';
   const { founderAvatarUrl, founderName, founderBio, founderMessageEn, founderMessageBn, logoUrl, brandName } = useBrand();
 
+  useEffect(() => {
+    const unsub = subscribePaymentSettings((settings) => {
+      setPaymentSettings(settings);
+    });
+    return () => unsub();
+  }, []);
+
   return (
-    <footer className="mt-auto bg-[#0B0F19] text-slate-400 border-t border-slate-800/80 transition-colors">
+    <footer className="w-full mt-auto mb-0 bg-[#0B0F19] text-slate-400 border-t border-slate-800/80 transition-colors">
       {/* Attached Founder & Lead Digital Architect Trust Section */}
       <div className="border-b border-slate-800/80 py-10 px-4 sm:px-6 lg:px-8" id="founder-section">
         <div className="max-w-7xl mx-auto">
@@ -295,60 +306,114 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
             
             {/* bKash Pill */}
-            <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-pink-500/30 hover:border-pink-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(209,32,83,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
-                <BkashLogo className="w-full h-full" />
+            {paymentSettings.bkash?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-pink-500/30 hover:border-pink-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(209,32,83,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="bkash" customLogo={paymentSettings.bkash?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-pink-200 group-hover/pay:text-pink-100 tracking-tight">bKash</span>
               </div>
-              <span className="text-xs font-extrabold text-pink-200 group-hover/pay:text-pink-100 tracking-tight">bKash</span>
-            </div>
+            )}
 
             {/* Nagad Pill */}
-            <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-orange-500/30 hover:border-orange-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(247,147,30,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
-              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0">
-                <img
-                  src="https://lh3.googleusercontent.com/d/1B-mR6Tc-KaZGWejKJap3gjN_YrPKPfYm"
-                  alt="Nagad"
-                  className="w-full h-full object-contain"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = 'https://drive.google.com/uc?export=view&id=1B-mR6Tc-KaZGWejKJap3gjN_YrPKPfYm';
-                  }}
-                />
+            {paymentSettings.nagad?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-orange-500/30 hover:border-orange-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(247,147,30,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="nagad" customLogo={paymentSettings.nagad?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-orange-200 group-hover/pay:text-orange-100 tracking-tight">Nagad</span>
               </div>
-              <span className="text-xs font-extrabold text-orange-200 group-hover/pay:text-orange-100 tracking-tight">Nagad</span>
-            </div>
+            )}
+
+            {/* Rocket Pill */}
+            {paymentSettings.rocket?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-purple-500/30 hover:border-purple-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(140,52,148,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="rocket" customLogo={paymentSettings.rocket?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-purple-200 group-hover/pay:text-purple-100 tracking-tight">Rocket</span>
+              </div>
+            )}
+
+            {/* Upay Pill */}
+            {paymentSettings.upay?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-blue-500/30 hover:border-blue-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(0,45,98,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-[#002D62] flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="upay" customLogo={paymentSettings.upay?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-blue-200 group-hover/pay:text-blue-100 tracking-tight">Upay</span>
+              </div>
+            )}
 
             {/* Binance Pay Pill */}
-            <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-amber-400/30 hover:border-amber-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(240,185,11,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
-              <div className="w-5 h-5 rounded-full bg-[#181A20] flex items-center justify-center p-0.5 shadow-sm shrink-0">
-                <img
-                  src="https://lh3.googleusercontent.com/d/1oriM4R9YRo9TSb6btdS3v4gRioeTCBL7"
-                  alt="Binance Pay"
-                  className="w-full h-full object-contain"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = 'https://drive.google.com/uc?export=view&id=1oriM4R9YRo9TSb6btdS3v4gRioeTCBL7';
-                  }}
-                />
+            {paymentSettings.binance?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-amber-400/30 hover:border-amber-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(240,185,11,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-[#181A20] flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="binance" customLogo={paymentSettings.binance?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-amber-200 group-hover/pay:text-amber-100 tracking-tight">Binance Pay</span>
               </div>
-              <span className="text-xs font-extrabold text-amber-200 group-hover/pay:text-amber-100 tracking-tight">Binance Pay</span>
-            </div>
+            )}
 
-            {/* Visa / Mastercard Pill */}
-            <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-blue-400/30 hover:border-blue-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(59,130,246,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
-              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0">
-                <img
-                  src="https://lh3.googleusercontent.com/d/15OVBEzt-TQWA-iX1CqZ_wK2laaLazWGW"
-                  alt="Visa / Mastercard"
-                  className="w-full h-full object-contain"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = 'https://drive.google.com/uc?export=view&id=15OVBEzt-TQWA-iX1CqZ_wK2laaLazWGW';
-                  }}
-                />
+            {/* Visa / Mastercard / Stripe Pill */}
+            {paymentSettings.stripe?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-blue-400/30 hover:border-blue-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(59,130,246,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="stripe" customLogo={paymentSettings.stripe?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-blue-200 group-hover/pay:text-blue-100 tracking-tight">Visa / Mastercard</span>
               </div>
-              <span className="text-xs font-extrabold text-blue-200 group-hover/pay:text-blue-100 tracking-tight">Visa / Mastercard</span>
-            </div>
+            )}
+
+            {/* PayPal Pill */}
+            {paymentSettings.paypal?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-sky-400/30 hover:border-sky-400/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(0,112,186,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="paypal" customLogo={paymentSettings.paypal?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-sky-200 group-hover/pay:text-sky-100 tracking-tight">PayPal</span>
+              </div>
+            )}
+
+            {/* Shurjopay Pill */}
+            {paymentSettings.shurjopay?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-orange-500/30 hover:border-orange-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(235,90,40,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="shurjopay" customLogo={paymentSettings.shurjopay?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-orange-200 group-hover/pay:text-orange-100 tracking-tight">Shurjopay</span>
+              </div>
+            )}
+
+            {/* SSLCommerz Pill */}
+            {paymentSettings.sslcommerz?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-red-500/30 hover:border-red-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(227,27,35,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="sslcommerz" customLogo={paymentSettings.sslcommerz?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-red-200 group-hover/pay:text-red-100 tracking-tight">SSLCommerz</span>
+              </div>
+            )}
+
+            {/* AamarPay Pill */}
+            {paymentSettings.aamarpay?.enabled && (
+              <div className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-cyan-500/30 hover:border-cyan-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(10,136,186,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId="aamarpay" customLogo={paymentSettings.aamarpay?.customLogo} className="w-full h-full" />
+                </div>
+                <span className="text-xs font-extrabold text-cyan-200 group-hover/pay:text-cyan-100 tracking-tight">AamarPay</span>
+              </div>
+            )}
+
+            {/* Custom Gateways */}
+            {paymentSettings.customGateways?.filter(g => g.enabled).map(customGw => (
+              <div key={customGw.id} className="group/pay inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/70 hover:bg-slate-900 backdrop-blur-md border border-emerald-500/30 hover:border-emerald-500/80 shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_16px_rgba(16,185,129,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-default">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden">
+                  <PaymentGatewayLogo gatewayId={customGw.id} customLogo={customGw.iconUrl} name={customGw.name} className="w-full h-full rounded-full" />
+                </div>
+                <span className="text-xs font-extrabold text-emerald-200 group-hover/pay:text-emerald-100 tracking-tight truncate max-w-[80px]">{customGw.name}</span>
+              </div>
+            ))}
 
           </div>
         </div>
@@ -409,6 +474,13 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
             ⚡ Engineered for Ultra-Fast Delivery, Bank-Grade Security &amp; 24/7 Creator Support
           </p>
         </div>
+
+        {/* Absolute Bottom Footer Ad (Seamless Dark/Night Mode Integration) */}
+        <AdSlotRenderer 
+          slotKey="footerBottomBanner" 
+          darkContainer={true}
+          className="w-full max-w-[728px] mx-auto mt-6 pt-4 border-t border-slate-900/80 my-0" 
+        />
 
       </div>
       {/* END: Refined Clean Footer Bottom */}

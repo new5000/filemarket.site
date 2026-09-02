@@ -9,7 +9,7 @@ export async function compressImageFile(
   maxDimension = 900,
   quality = 0.72
 ): Promise<string> {
-  return new Promise((resolve) => {
+  const compressionPromise = new Promise<string>((resolve) => {
     // If SVG, return as data url
     if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
       const reader = new FileReader();
@@ -29,35 +29,39 @@ export async function compressImageFile(
 
       const img = new Image();
       img.onload = () => {
-        let width = img.width;
-        let height = img.height;
+        try {
+          let width = img.width || 1;
+          let height = img.height || 1;
 
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, width);
-        canvas.height = Math.max(1, height);
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          try {
-            // Try WebP first for optimal compression
-            const webpUrl = canvas.toDataURL('image/webp', quality);
-            if (webpUrl && webpUrl.startsWith('data:image/webp')) {
-              resolve(webpUrl);
-              return;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
             }
-          } catch {}
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        } else {
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, width);
+          canvas.height = Math.max(1, height);
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            try {
+              // Try WebP first for optimal compression
+              const webpUrl = canvas.toDataURL('image/webp', quality);
+              if (webpUrl && webpUrl.startsWith('data:image/webp')) {
+                resolve(webpUrl);
+                return;
+              }
+            } catch {}
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          } else {
+            resolve(rawDataUrl);
+          }
+        } catch {
           resolve(rawDataUrl);
         }
       };
@@ -67,6 +71,23 @@ export async function compressImageFile(
     reader.onerror = () => resolve('');
     reader.readAsDataURL(file);
   });
+
+  // Strict 1.8s timeout fail-safe: never hang on client-side compression
+  const timeoutPromise = new Promise<string>((resolve) => {
+    setTimeout(() => {
+      // Fast fallback to direct read
+      try {
+        const fallbackReader = new FileReader();
+        fallbackReader.onload = () => resolve((fallbackReader.result as string) || '');
+        fallbackReader.onerror = () => resolve('');
+        fallbackReader.readAsDataURL(file);
+      } catch {
+        resolve('');
+      }
+    }, 1800);
+  });
+
+  return Promise.race([compressionPromise, timeoutPromise]);
 }
 
 /**
@@ -130,43 +151,66 @@ export async function uploadImageFile(
   maxWidth: number = 900,
   quality: number = 0.72
 ): Promise<string> {
-  // 1. First obtain an ultra-efficient compressed Data URL
+  // 1. First obtain an ultra-efficient compressed Data URL (instant, client-side, fail-safe)
   const compressedDataUrl = await compressImageFile(file, maxWidth, quality);
 
-  // 2. Try Firebase Storage in background if configured
+  // 2. Try Firebase Storage with a strict 2-second timeout race
   try {
-    const app = getApp();
-    const storage = getStorage(app);
-    const filename = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}.webp`;
-    const storageRef = ref(storage, filename);
+    const storagePromise = (async () => {
+      const app = getApp();
+      const storage = getStorage(app);
+      const filename = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}.webp`;
+      const storageRef = ref(storage, filename);
 
-    if (compressedDataUrl.startsWith('data:')) {
-      const parts = compressedDataUrl.split(',');
-      const byteString = atob(parts[1]);
-      const mimeString = parts[0].split(':')[1].split(';')[0];
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
+      if (compressedDataUrl.startsWith('data:')) {
+        const parts = compressedDataUrl.split(',');
+        const byteString = atob(parts[1]);
+        const mimeString = parts[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: mimeString });
+        await uploadBytes(storageRef, blob, { contentType: mimeString });
+        const downloadUrl = await getDownloadURL(storageRef);
+        return downloadUrl;
       }
-      const blob = new Blob([ab], { type: mimeString });
-      await uploadBytes(storageRef, blob, { contentType: mimeString });
-      const downloadUrl = await getDownloadURL(storageRef);
-      return downloadUrl;
-    }
+      return compressedDataUrl;
+    })();
+
+    const timeoutPromise = new Promise<string>((resolve) => {
+      setTimeout(() => resolve(compressedDataUrl), 2000);
+    });
+
+    const result = await Promise.race([storagePromise, timeoutPromise]);
+    return result || compressedDataUrl;
   } catch {
     // If Firebase Storage is unconfigured or blocked, safely return the lightweight base64
+    return compressedDataUrl;
   }
-
-  return compressedDataUrl;
 }
 
 /**
- * Upload Payment Screenshot directly to Firebase Storage: `payment_receipts/{orderId}_{timestamp}`
+ * Upload Payment Screenshot directly with instant client-side Base64 fallback: `payment_receipts/{orderId}_{timestamp}`
  */
 export async function uploadPaymentReceipt(file: File, orderId?: string): Promise<string> {
   const folder = 'payment_receipts';
-  return uploadImageFile(file, folder, 1000, 0.75);
+  try {
+    return await uploadImageFile(file, folder, 800, 0.70);
+  } catch {
+    // Direct safe Base64 fallback if anything unexpected happens
+    return new Promise<string>((resolve) => {
+      try {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string) || '');
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      } catch {
+        resolve('');
+      }
+    });
+  }
 }
 
 /**

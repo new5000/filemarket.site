@@ -49,7 +49,6 @@ import BloggerXmlStudioModal from './components/BloggerXmlStudioModal';
 import { WatchPreviewPage } from './components/WatchPreviewPage';
 import { CartDrawer } from './components/CartDrawer';
 import { CustomPageView } from './components/CustomPageView';
-import { AdSlotRenderer } from './components/ads/AdSlotRenderer';
 
 function MainApp() {
   // Real-time live presence tracking across all visitors & tabs
@@ -205,7 +204,6 @@ function MainApp() {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [isUserProfilePageOpen, setIsUserProfilePageOpen] = useState<boolean>(false);
-  const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
   const [isMyProductsPageOpen, setIsMyProductsPageOpen] = useState<boolean>(false);
   const [isSavedProductsPageOpen, setIsSavedProductsPageOpen] = useState<boolean>(false);
   const [policyModalTab, setPolicyModalTab] = useState<PolicyPageType | null>(null);
@@ -234,7 +232,6 @@ function MainApp() {
   // Synchronize route state with active modals and persistent views
   useEffect(() => {
     let isProfile = false;
-    let isAuth = false;
     let isLocker = false;
     let isCart = false;
     let isSaved = false;
@@ -314,8 +311,7 @@ function MainApp() {
 
       case 'auth':
         setAuthModalInitialView(route.path === '/signup' ? 'signup' : 'login');
-        isAuth = true;
-        document.title = 'Sign In & Sign Up — FileMarket';
+        document.title = route.path === '/signup' ? 'Create Free Account — FileMarket' : 'Sign In — FileMarket';
         break;
 
       case 'reset-password':
@@ -357,7 +353,6 @@ function MainApp() {
     }
 
     setIsUserProfilePageOpen(isProfile);
-    setIsLoginOpen(isAuth);
     setIsMyProductsPageOpen(isLocker);
     setIsDrawerOpen(isCart);
     setIsSavedProductsPageOpen(isSaved);
@@ -555,7 +550,7 @@ function MainApp() {
             initialTab={(route.params.tab as any) || 'dashboard'}
             darkMode={darkMode}
             setDarkMode={setDarkMode}
-            onOpenLogin={() => setIsLoginOpen(true)}
+            onOpenLogin={() => navigate('/login')}
           />
         ) : isMaintenanceMode ? (
           <MaintenanceScreen
@@ -735,11 +730,6 @@ function MainApp() {
             </AnimatePresence>
           </main>
 
-          {/* Slot 4: Pre-Footer Banner (Centered between content and footer) */}
-          <div className="w-full max-w-5xl mx-auto px-4">
-            <AdSlotRenderer slotKey="footerTopBanner" />
-          </div>
-
           {/* Footer */}
           <Footer
             onSelectCategory={(cat) => {
@@ -749,11 +739,6 @@ function MainApp() {
             onOpenXmlStudio={() => navigate('/studio')}
             onOpenPolicy={(tab) => navigate(`/policy/${tab}`)}
           />
-
-          {/* Slot 2: Footer Absolute Bottom Ad */}
-          <div className="w-full max-w-5xl mx-auto px-4 pb-6">
-            <AdSlotRenderer slotKey="footerBottomBanner" />
-          </div>
         </>
       )}
 
@@ -774,38 +759,14 @@ function MainApp() {
         onOpenProfilePage={() => navigate('/profile')}
         onOpenMyProductsPage={() => navigate('/locker')}
         onOpenSavedProducts={() => navigate('/wishlist')}
-        onOpenLogin={() => setIsLoginOpen(true)}
+        onOpenLogin={() => {
+          setIsDrawerOpen(false);
+          navigate('/login');
+        }}
       />
 
       {/* Universal Slide-Out Cart & Checkout Drawer */}
       <CartDrawer currency={currency} />
-
-      {/* Dedicated User Authentication Login Page */}
-      <LoginPage
-        isOpen={isLoginOpen}
-        onClose={() => {
-          setIsLoginOpen(false);
-          setAuthModalBlockedMessage(null);
-          setAuthModalInitialView('login');
-          if (window.location.pathname === '/login' || window.location.pathname === '/auth' || window.location.pathname === '/signup') {
-            handleBackToHome();
-          }
-        }}
-        initialView={authModalInitialView}
-        checkoutBlockedMessage={authModalBlockedMessage}
-        onVerificationSuccess={() => {
-          setIsLoginOpen(false);
-          setAuthModalBlockedMessage(null);
-          setAuthModalInitialView('login');
-          if (pendingCheckoutProduct) {
-            const p = pendingCheckoutProduct;
-            setPendingCheckoutProduct(null);
-            navigate(`/checkout/${getProductSlug(p)}`, { title: `Checkout ${p.title} — FileMarket` });
-          } else {
-            handleBackToHome();
-          }
-        }}
-      />
 
       {/* Dedicated User Profile Page Modal Overlay */}
       <UserProfilePage
@@ -817,9 +778,7 @@ function MainApp() {
         setDarkMode={setDarkMode}
         onOpenVerificationModal={() => {
           setIsUserProfilePageOpen(false);
-          setAuthModalInitialView('verify');
-          setAuthModalBlockedMessage('Please verify your email address to enable all marketplace features.');
-          setIsLoginOpen(true);
+          navigate('/profile');
         }}
       />
 
@@ -884,8 +843,8 @@ function MainApp() {
           oobCode={passwordResetOobCode}
           onClose={() => setPasswordResetOobCode(null)}
           onOpenLogin={(view) => {
-            setAuthModalInitialView(view);
-            setIsLoginOpen(true);
+            setPasswordResetOobCode(null);
+            navigate(view === 'signup' ? '/signup' : '/login');
           }}
         />
       )}

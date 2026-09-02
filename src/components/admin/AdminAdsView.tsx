@@ -288,27 +288,20 @@ export const AdminAdsView: React.FC<AdminAdsViewProps> = ({ onRefresh }) => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 opacity-100 transition-opacity" style={{ opacity: masterEnabled ? 1 : 0.6, pointerEvents: masterEnabled ? 'auto' : 'none' }}>
-        {renderCard('previewMediaTop', 'Card 1: 🎬 Watch Preview - Top Media Ad', Tv, [
+        {renderCard('previewMediaTop', 'Card 1: 🎬 Top Showcase Ad (Above Media Carousel / Video)', Tv, [
           { value: 'responsive', label: 'Responsive Auto' },
           { value: 'mobile_banner_320x50', label: 'Mobile 320x50' },
           { value: 'banner_468x60', label: 'Banner 468x60' },
           { value: 'leaderboard_728x90', label: 'Leaderboard 728x90' }
         ])}
 
-        {renderCard('previewMediaBottom', 'Card 2: 🎬 Watch Preview - Bottom Media Ad', Tv, [
-          { value: 'responsive', label: 'Responsive Auto' },
-          { value: 'medium_rectangle_300x250', label: 'Medium Rectangle 300x250' },
-          { value: 'mobile_banner_320x50', label: 'Mobile 320x50' },
-          { value: 'leaderboard_728x90', label: 'Leaderboard 728x90' }
-        ])}
-
-        {renderCard('footerTopBanner', 'Card 3: 🏷️ Footer Top Sponsored Banner', Sparkles, [
+        {renderCard('footerTopBanner', 'Card 2: 🏷️ Pre-Founder Bottom Ad (Directly Above Founder Section)', Sparkles, [
           { value: 'responsive', label: 'Responsive Auto' },
           { value: 'leaderboard_728x90', label: 'Leaderboard 728x90' },
           { value: 'mobile_banner_320x50', label: 'Mobile 320x50' }
         ])}
 
-        {renderCard('footerBottomBanner', 'Card 4: 🔻 Footer Absolute Bottom Ad', LayoutGrid, [
+        {renderCard('footerBottomBanner', 'Card 3: 🔻 Footer Absolute Bottom Ad (Below Copyright & Socials)', LayoutGrid, [
           { value: 'responsive', label: 'Responsive Auto' },
           { value: 'leaderboard_728x90', label: 'Leaderboard 728x90' },
           { value: 'mobile_banner_320x50', label: 'Mobile 320x50' }

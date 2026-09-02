@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Product } from '../types';
 import { DynamicPreviewRenderer } from './DynamicPreviewRenderer';
+import { AdSlotRenderer } from './ads/AdSlotRenderer';
 
 interface WatchPreviewCarouselProps {
   product: Product;
@@ -189,6 +190,12 @@ export const WatchPreviewCarousel: React.FC<WatchPreviewCarouselProps> = ({
           </button>
         </div>
       )}
+
+      {/* Top Media Ad Slot (Cleanly placed directly above the Media Player / Carousel, below tab buttons) */}
+      <AdSlotRenderer 
+        slotKey="previewMediaTop" 
+        className="w-full max-w-[728px] mx-auto my-3"
+      />
 
       {/* Main View: Gallery Slider with Touch Swipe & Click-to-Zoom */}
       {activeTab === 'gallery' && isGalleryAvailable && (
