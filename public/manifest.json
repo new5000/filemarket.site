@@ -1,7 +1,8 @@
 {
+  "id": "/",
   "name": "FileMarket Digital Assets",
   "short_name": "FileMarket",
-  "description": "A premium digital asset marketplace for files, graphics, templates, and courses.",
+  "description": "A premium digital asset marketplace for video bundles, templates, and courses.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -10,24 +11,19 @@
   "theme_color": "#0F172A",
   "dir": "ltr",
   "lang": "en",
-  "categories": [
-    "business",
-    "shopping",
-    "productivity"
-  ],
+  "categories": ["business", "shopping", "productivity"],
   "icons": [
     {
-      "src": "/pwa-192x192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa-512x512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "id": "/"
+  ]
 }
