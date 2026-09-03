@@ -18,18 +18,22 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [authStatus, setAuthStatus] = useState<AuthStatus>(getAuthStatus());
   const unsubscribeSnapshotRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Clear previous snapshot listener if it exists
-      if (unsubscribeSnapshotRef.current) {
-        unsubscribeSnapshotRef.current();
-        unsubscribeSnapshotRef.current = null;
+    // অ্যান্ড্রয়েড অ্যাপ থেকে আসা গুগল সাইন-ইন রিসিভ করার ব্রিজ
+    (window as any).handleGoogleSignIn = async (idToken: string) => {
+      try {
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
+      } catch (error) {
+        console.error("Android Google Sign-in Error:", error);
       }
+    };
 
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // If user is not verified (and not a Google pre-verified user), ignore global login
         if (!firebaseUser.emailVerified && firebaseUser.providerData[0]?.providerId === 'password') {
