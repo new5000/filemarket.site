@@ -36,7 +36,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   setDarkMode,
   onOpenLogin
 }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    if (typeof window !== 'undefined') {
+      const urlTab = new URLSearchParams(window.location.search).get('tab');
+      if (urlTab && ['dashboard', 'cms', 'banners', 'ads', 'products', 'orders', 'coupons', 'payments', 'users', 'faqs', 'access', 'settings'].includes(urlTab)) {
+        return urlTab as AdminTab;
+      }
+    }
+    return initialTab;
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -123,6 +131,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             {activeTab === 'banners' && (
               <AdminHeroBannersView
+                products={products}
                 onRefresh={loadAdminData}
               />
             )}

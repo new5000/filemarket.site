@@ -27,6 +27,14 @@ export const BrandAndSocialSettingsCard = () => {
   const [playStoreEnabled, setPlayStoreEnabled] = useState(false);
   const [playStoreUrl, setPlayStoreUrl] = useState('');
 
+  // Global CTA Button Customization
+  const [defaultBuyButtonText, setDefaultBuyButtonText] = useState('Buy');
+  const [defaultWatchPreviewText, setDefaultWatchPreviewText] = useState('Watch Preview');
+
+  // Global Card Meta Display Controls
+  const [showCardFileSize, setShowCardFileSize] = useState(true);
+  const [showCardRating, setShowCardRating] = useState(true);
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -46,6 +54,10 @@ export const BrandAndSocialSettingsCard = () => {
           if (data.headerLogoUrl) setHeaderLogoUrl(data.headerLogoUrl);
           if (data.faviconUrl) setFaviconUrl(data.faviconUrl);
           if (data.founderAvatarUrl) setFounderAvatarUrl(data.founderAvatarUrl);
+          if (data.buyButtonText) setDefaultBuyButtonText(data.buyButtonText);
+          if (data.watchPreviewButtonText) setDefaultWatchPreviewText(data.watchPreviewButtonText);
+          if (data.showCardFileSize !== undefined) setShowCardFileSize(Boolean(data.showCardFileSize));
+          if (data.showCardRating !== undefined) setShowCardRating(Boolean(data.showCardRating));
 
           if (data.imageSizes) {
             setLogoWidth(data.imageSizes.logoWidth?.toString() || '42');
@@ -113,6 +125,14 @@ export const BrandAndSocialSettingsCard = () => {
         headerLogoUrl: (headerLogoUrl || '').trim(),
         faviconUrl: (faviconUrl || '').trim(),
         founderAvatarUrl: (founderAvatarUrl || '').trim(),
+
+        // Global CTA Button Labels
+        buyButtonText: (defaultBuyButtonText || 'Buy').trim(),
+        watchPreviewButtonText: (defaultWatchPreviewText || 'Watch Preview').trim(),
+
+        // Global Card Meta Display Controls (Storewide)
+        showCardFileSize: Boolean(showCardFileSize),
+        showCardRating: Boolean(showCardRating),
 
         // Dimensions & Image Sizing
         imageSizes: {
@@ -377,6 +397,113 @@ export const BrandAndSocialSettingsCard = () => {
               onChange={(e) => setBannerHeight(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Global Action Buttons & Call to Action (CTA) Customization */}
+      <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <span>⚡</span> Storewide Action Buttons & CTA Text
+          </h3>
+          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-md">
+            Global Defaults
+          </span>
+        </div>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          Customize standard store button labels. You can also override button text for individual products in the Products catalog editor.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Default "Buy" Button Text
+            </label>
+            <input
+              type="text"
+              value={defaultBuyButtonText}
+              onChange={(e) => setDefaultBuyButtonText(e.target.value)}
+              placeholder="e.g. Buy, Buy Now, কিনুন, Order Now"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500"
+            />
+            <span className="text-[10px] text-slate-400 mt-1 block">
+              Appears on all store product cards &amp; quick purchase triggers.
+            </span>
+          </div>
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Default "Watch Preview" Button Text
+            </label>
+            <input
+              type="text"
+              value={defaultWatchPreviewText}
+              onChange={(e) => setDefaultWatchPreviewText(e.target.value)}
+              placeholder="e.g. Watch Preview, ভিডিও দেখুন, Live Demo"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500"
+            />
+            <span className="text-[10px] text-slate-400 mt-1 block">
+              Appears on product detail media banner overlay.
+            </span>
+          </div>
+        </div>
+
+        {/* Global Product Card Meta Display Controls */}
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-3 mt-4">
+          <div>
+            <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span>🎛️</span> Product Card Meta Display Controls (স্টোরওয়াইড অন/অফ)
+            </h4>
+            <p className="text-[10px] text-slate-400">
+              সকল প্রোডাক্ট কার্ড থেকে এক ক্লিকে ফাইল সাইজ অথবা স্টার রেটিং অন বা অফ করুন
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            {/* Global File Size Toggle */}
+            <label className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-emerald-500 transition">
+              <div>
+                <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  Card File Size (ফাইল সাইজ)
+                  {showCardFileSize ? (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">ON (প্রদর্শিত)</span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500/10 text-rose-500">OFF (লুকানো)</span>
+                  )}
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                  বন্ধ করলে স্টোরের কোনো কার্ডেই ফাইল সাইজ ও | দেখাবে না
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={showCardFileSize}
+                onChange={(e) => setShowCardFileSize(e.target.checked)}
+                className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+              />
+            </label>
+
+            {/* Global Rating Toggle */}
+            <label className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-amber-500 transition">
+              <div>
+                <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  Card Star Rating (স্টার রেটিং)
+                  {showCardRating ? (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400">ON (প্রদর্শিত)</span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500/10 text-rose-500">OFF (লুকানো)</span>
+                  )}
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                  বন্ধ করলে স্টোরের কোনো কার্ডেই ★ স্টার রেটিং দেখাবে না
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={showCardRating}
+                onChange={(e) => setShowCardRating(e.target.checked)}
+                className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+              />
+            </label>
           </div>
         </div>
       </div>

@@ -20,18 +20,31 @@ import {
 } from 'lucide-react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { HeroBannerSlide, HeroBannersData } from '../../types';
+import { HeroBannerSlide, HeroBannersData, Product } from '../../types';
 import { DEFAULT_HERO_BANNERS } from '../../context/GlobalSettingsContext';
 import { ImageUploadField } from './ImageUploadField';
+import { 
+  addProductToHeroBanner, 
+  removeProductFromHeroBanner, 
+  toggleProductInHeroBanner, 
+  isProductInHeroBanners, 
+  createBannerSlideFromProduct 
+} from '../../lib/heroBannerService';
 
 interface AdminHeroBannersViewProps {
+  products?: Product[];
   onRefresh?: () => void;
 }
 
-export const AdminHeroBannersView: React.FC<AdminHeroBannersViewProps> = ({ onRefresh }) => {
+export const AdminHeroBannersView: React.FC<AdminHeroBannersViewProps> = ({ products = [], onRefresh }) => {
   const [heroBanners, setHeroBanners] = useState<HeroBannersData>(DEFAULT_HERO_BANNERS);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // 1-Click Product Picker Modal
+  const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [processingPickerId, setProcessingPickerId] = useState<string | null>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,6 +62,19 @@ export const AdminHeroBannersView: React.FC<AdminHeroBannersViewProps> = ({ onRe
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handlePickerToggle = async (product: Product) => {
+    setProcessingPickerId(String(product.id));
+    try {
+      const res = await toggleProductInHeroBanner(product);
+      showToast(res.message, res.success ? 'success' : 'error');
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Error updating banner', 'error');
+    } finally {
+      setProcessingPickerId(null);
+    }
   };
 
   // Real-time Firestore sync
@@ -192,7 +218,17 @@ export const AdminHeroBannersView: React.FC<AdminHeroBannersViewProps> = ({ onRe
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsProductPickerOpen(true)}
+            className="px-4 py-2 text-xs font-black rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-500 hover:opacity-95 text-slate-950 transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-amber-500/20"
+            title="1-Click Add any published product to Hero section"
+          >
+            <Sparkles className="w-4 h-4 text-amber-950" />
+            <span>1-Click Add From Products</span>
+          </button>
+
           <button
             type="button"
             onClick={handleResetToDefault}
@@ -392,6 +428,43 @@ export const AdminHeroBannersView: React.FC<AdminHeroBannersViewProps> = ({ onRe
 
             {/* Modal Form */}
             <form onSubmit={handleSaveModal} className="p-5 space-y-4 overflow-y-auto">
+              {/* Quick Auto-fill from Product */}
+              {products && products.length > 0 && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                    <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Auto-fill from published product:</span>
+                  </div>
+                  <select
+                    onChange={(e) => {
+                      const prodId = e.target.value;
+                      const found = products.find(p => String(p.id) === prodId);
+                      if (found) {
+                        const slide = createBannerSlideFromProduct(found);
+                        setFormSlide(prev => ({
+                          ...prev,
+                          badge: slide.badge,
+                          headline: slide.headline,
+                          subtext: slide.subtext,
+                          imageUrl: slide.imageUrl,
+                          actionLink: slide.actionLink,
+                          actionText: slide.actionText,
+                          productId: slide.productId
+                        }));
+                        showToast(`Loaded details from "${found.title}"`);
+                      }
+                    }}
+                    defaultValue=""
+                    className="text-xs font-bold py-1.5 px-3 rounded-lg border border-emerald-500/40 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="" disabled>-- Select a Product to Autofill --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={String(p.id)}>{p.title} (৳{p.priceBDT})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Headline / Main Title *
@@ -490,6 +563,135 @@ export const AdminHeroBannersView: React.FC<AdminHeroBannersViewProps> = ({ onRe
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* 1-Click Add From Products Modal */}
+      {isProductPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-fade-in max-h-[85vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  1-Click Add Product to Hero Slider
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Click any product below to instantly feature it in the Homepage Hero Slider.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsProductPickerOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Filter */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+              <input
+                type="text"
+                placeholder="Search published products by title or category..."
+                value={pickerSearch}
+                onChange={(e) => setPickerSearch(e.target.value)}
+                className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/40"
+              />
+            </div>
+
+            {/* Product List */}
+            <div className="p-4 overflow-y-auto space-y-2.5 max-h-[50vh]">
+              {products
+                .filter(p => {
+                  if (!pickerSearch.trim()) return true;
+                  const q = pickerSearch.toLowerCase();
+                  return (
+                    p.title.toLowerCase().includes(q) ||
+                    (p.category && p.category.toLowerCase().includes(q))
+                  );
+                })
+                .map((product) => {
+                  const inHero = isProductInHeroBanners(product, heroBanners.banners);
+                  const isProcessing = processingPickerId === String(product.id);
+
+                  return (
+                    <div
+                      key={product.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition ${
+                        inHero
+                          ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/30'
+                          : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/60 hover:border-emerald-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 pr-3">
+                        <img
+                          src={product.thumbnail || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop'}
+                          alt={product.title}
+                          className="w-11 h-11 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                            {product.title}
+                          </h4>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">৳{product.priceBDT}</span>
+                            <span>•</span>
+                            <span>{product.category || 'Digital Asset'}</span>
+                            {product.badge && (
+                              <>
+                                <span>•</span>
+                                <span className="text-amber-500 font-bold">{product.badge}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handlePickerToggle(product)}
+                        disabled={isProcessing}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-xs active:scale-95 ${
+                          inHero
+                            ? 'bg-amber-500/20 hover:bg-rose-500 text-amber-700 dark:text-amber-300 hover:text-white border border-amber-500/40'
+                            : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+                        } ${isProcessing ? 'opacity-50 cursor-wait' : ''}`}
+                      >
+                        {inHero ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>In Hero (Remove)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>+ 1-Click Add</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+
+              {products.length === 0 && (
+                <div className="py-10 text-center text-xs text-slate-400">
+                  No published products found in the catalog.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsProductPickerOpen(false)}
+                className="px-4 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -2674,8 +2674,8 @@ export const BLOGGER_XML_TEMPLATE = `<?xml version="1.0" encoding="UTF-8" ?>
 
     // 5.1 Firebase Initialization Configuration for Blogger Template
     var firebaseConfig = {
-      apiKey: "AIzaSyBWHf7mkYIct3YELu3LHwNLGjoA8SU74lg",
-      authDomain: "copyright-499917.firebaseapp.com",
+      apiKey: "\${window.__FIREBASE_API_KEY__ || ''}",
+      authDomain: "\${window.__FIREBASE_AUTH_DOMAIN__ || 'copyright-499917.firebaseapp.com'}",
       projectId: "copyright-499917",
       storageBucket: "copyright-499917.firebasestorage.app",
       messagingSenderId: "778447249303",

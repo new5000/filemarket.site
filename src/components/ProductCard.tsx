@@ -1,8 +1,11 @@
-import React, { memo } from 'react';
-import { ShoppingBag } from 'lucide-react';
+import React, { memo, useState, useEffect } from 'react';
+import { ShoppingBag, Tv, Edit3 } from 'lucide-react';
 import { Product, Currency, ProductType } from '../types';
 import { useCart } from '../context/CartContext';
 import { formatDirectImageUrl } from '../utils/formatImageUrl';
+import { auth } from '../lib/firebase';
+import { useGlobalSettings } from '../context/GlobalSettingsContext';
+import { toggleProductInHeroBanner, isProductInHeroBanners } from '../lib/heroBannerService';
 
 interface ProductCardProps {
   product: Product;
@@ -21,6 +24,36 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   onViewDetails,
 }) => {
   const { addToCart } = useCart();
+  const { heroBanners, generalConfig } = useGlobalSettings();
+
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    const cached = localStorage.getItem('fm_master_admin_email') || 'new144506@gmail.com';
+    return Boolean(auth.currentUser && auth.currentUser.email?.toLowerCase().trim() === cached.toLowerCase().trim());
+  });
+  const [isTogglingHero, setIsTogglingHero] = useState(false);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((user) => {
+      const cached = localStorage.getItem('fm_master_admin_email') || 'new144506@gmail.com';
+      setIsAdmin(Boolean(user && user.email?.toLowerCase().trim() === cached.toLowerCase().trim()));
+    });
+    return () => unsub();
+  }, []);
+
+  const inHero = isProductInHeroBanners(product, heroBanners?.banners || []);
+
+  const handleAdminToggleHero = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsTogglingHero(true);
+    try {
+      await toggleProductInHeroBanner(product);
+    } catch (err) {
+      console.error('Failed to toggle product in hero banner:', err);
+    } finally {
+      setIsTogglingHero(false);
+    }
+  };
 
   if (!product) return null;
 
@@ -66,8 +99,20 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
   const coverImg = formatDirectImageUrl((product as any).coverImage || product.thumbnail) || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80';
   const categoryText = product.category || 'VIDEO BUNDLES';
-  const ratingDisplay = product.rating ? String(product.rating) : ((product as any).rating || '9.2');
-  const fileSizeDisplay = product.fileSize || ((product as any).fileSize || '15 GB');
+
+  // Support turning off File Size & Star Rating per-product or globally
+  const rawFileSize = (product.fileSize !== undefined && product.fileSize !== null) ? String(product.fileSize).trim() : '';
+  const isFileSizeExplicitlyOff = rawFileSize.toLowerCase() === 'off' || rawFileSize.toLowerCase() === 'none' || rawFileSize.toLowerCase() === 'hide' || rawFileSize.toLowerCase() === 'hidden';
+  
+  const isGlobalFileSizeEnabled = generalConfig?.showCardFileSize !== false;
+  const isProductFileSizeEnabled = (product as any).showFileSize !== false && !isFileSizeExplicitlyOff && rawFileSize !== '';
+  const showFileSize = isGlobalFileSizeEnabled && isProductFileSizeEnabled;
+  const fileSizeDisplay = rawFileSize;
+
+  const isGlobalRatingEnabled = generalConfig?.showCardRating !== false;
+  const isProductRatingEnabled = (product as any).showRating !== false;
+  const showRating = isGlobalRatingEnabled && isProductRatingEnabled;
+  const ratingDisplay = product.rating !== undefined && product.rating !== null ? String(product.rating) : '4.9';
 
   return (
     <article
@@ -94,6 +139,36 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               {product.badge}
             </span>
           )}
+          {isAdmin && (
+            <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.location.href = `/admin?tab=products&edit=${product.id}`;
+                }}
+                className="px-2 py-1 rounded-lg text-[10px] font-black bg-slate-950/80 hover:bg-emerald-500 text-white hover:text-slate-950 backdrop-blur-md border border-slate-700/80 hover:border-emerald-500 transition-all shadow-md flex items-center gap-1 cursor-pointer active:scale-90"
+                title="Edit this product details & file size in Admin Panel"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>Edit</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleAdminToggleHero}
+                disabled={isTogglingHero}
+                className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all shadow-md flex items-center gap-1 cursor-pointer active:scale-90 ${
+                  inHero
+                    ? 'bg-amber-500 hover:bg-rose-500 text-slate-950 hover:text-white'
+                    : 'bg-slate-950/80 hover:bg-emerald-500 text-white hover:text-slate-950 backdrop-blur-md border border-slate-700/80 hover:border-emerald-500'
+                } ${isTogglingHero ? 'opacity-60 cursor-wait' : ''}`}
+                title={inHero ? "In Homepage Hero Slider (Click to remove in 1 click)" : "Add this published product to Homepage Hero Slider in 1 click"}
+              >
+                <Tv className="w-3 h-3" />
+                <span>{inHero ? '✓ Hero' : '+ Hero'}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 2. Unified Single-Line Meta Row */}
@@ -103,16 +178,24 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             {categoryText}
           </span>
 
-          {/* Compact Rating & Size (No wrapping) */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="flex items-center gap-0.5 text-amber-500 font-extrabold">
-              ★ {ratingDisplay}
-            </span>
-            <span className="text-slate-300 dark:text-slate-600">|</span>
-            <span className="text-slate-400 font-medium">
-              {fileSizeDisplay}
-            </span>
-          </div>
+          {/* Compact Rating & Size (Clean conditional rendering, hidden cleanly when turned off) */}
+          {(showRating || showFileSize) && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              {showRating && (
+                <span className="flex items-center gap-0.5 text-amber-500 font-extrabold">
+                  ★ {ratingDisplay}
+                </span>
+              )}
+              {showRating && showFileSize && (
+                <span className="text-slate-300 dark:text-slate-600">|</span>
+              )}
+              {showFileSize && (
+                <span className="text-slate-400 font-medium">
+                  {fileSizeDisplay}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 3. Product Title (2-line clamp) */}
@@ -162,7 +245,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             className="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 active:scale-95 text-white text-sm sm:text-base font-black tracking-wide rounded-xl shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
           >
             <span className="text-sm sm:text-base">⚡</span>
-            <span className="text-sm sm:text-base font-black">Buy</span>
+            <span className="text-sm sm:text-base font-black">
+              {product.buyButtonText || generalConfig?.buyButtonText || 'Buy'}
+            </span>
           </button>
         </div>
       </div>

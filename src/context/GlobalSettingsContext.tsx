@@ -25,6 +25,10 @@ export interface GeneralConfigData {
   founderAvatarUrl?: string;
   playStoreEnabled?: boolean;
   playStoreUrl?: string;
+  buyButtonText?: string;
+  watchPreviewButtonText?: string;
+  showCardFileSize?: boolean;
+  showCardRating?: boolean;
   imageSizes?: {
     logoWidth?: number;
     logoHeight?: number;

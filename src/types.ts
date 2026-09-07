@@ -47,9 +47,12 @@ export interface Product {
   title: string;
   category: ProductCategory;
   type?: ProductType;
-  productKind?: 'digital' | 'physical';
+  productKind?: 'digital' | 'physical' | 'service';
   deliveryTime?: string;
+  whatsappNumber?: string;
   whatsappMessage?: string;
+  whatsappOrderEnabled?: boolean;
+  whatsappButtonText?: string;
   priceBDT: number;
   priceUSD: number;
   originalPriceBDT: number;
@@ -58,6 +61,8 @@ export interface Product {
   rating: number;
   reviewsCount: number;
   fileSize: string;
+  showFileSize?: boolean;
+  showRating?: boolean;
   fileFormat: string;
   license: string;
   cardSubtitle?: string;
@@ -75,6 +80,9 @@ export interface Product {
   liveDemoEnabled?: boolean;
   liveDemoUrl?: string;
   liveDemoButtonText?: string;
+  watchPreviewButtonText?: string;
+  enableWatchPreview?: boolean;
+  buyButtonText?: string;
   enableGallery?: boolean;
   enableVideo?: boolean;
   previewImages?: string[];
@@ -401,6 +409,7 @@ export interface HeroBannerSlide {
   imageUrl: string;
   actionLink: string;
   actionText: string;
+  productId?: string;
 }
 
 export interface HeroBannersData {

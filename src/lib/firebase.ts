@@ -40,7 +40,17 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const resolvedFirebaseConfig = {
+  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || firebaseConfig?.apiKey || 'AIzaSyBWHf7mkYIct3YELu3LHwNLGjoA8SU74lg',
+  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig?.authDomain || 'copyright-499917.firebaseapp.com',
+  projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || firebaseConfig?.projectId || 'copyright-499917',
+  storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig?.storageBucket || 'copyright-499917.firebasestorage.app',
+  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig?.messagingSenderId || '778447249303',
+  appId: import.meta.env?.VITE_FIREBASE_APP_ID || firebaseConfig?.appId || '1:778447249303:web:f72d694832ea393f32eed2',
+  firestoreDatabaseId: import.meta.env?.VITE_FIREBASE_DATABASE_ID || (firebaseConfig as any)?.firestoreDatabaseId || 'ai-studio-filemarketdigita-536b1bb8-778f-4401-97c8-8b54455db1a2'
+};
+
+const app = getApps().length > 0 ? getApp() : initializeApp(resolvedFirebaseConfig);
 
 // Use browserLocalPersistence (localStorage) instead of indexedDB to avoid "Database is closing/hidden" errors in iframes
 let authInstance;
@@ -85,7 +95,6 @@ export const handleGoogleLogin = async () => {
 
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-    console.log("Successfully logged in as:", user.email);
     return user;
   } catch (error) {
     console.error("Google Sign-In Error:", error);

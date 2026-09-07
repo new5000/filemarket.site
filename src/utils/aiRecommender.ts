@@ -65,7 +65,9 @@ export async function rankProductsWithGemini(
   products: Product[],
   apiKey?: string
 ): Promise<Product[]> {
-  const finalApiKey = apiKey || (import.meta as any).env?.VITE_GEMINI_API_KEY || (window as any).GEMINI_API_KEY;
+  // Never expose server secret GEMINI_API_KEY in client bundles.
+  // Falls back cleanly to local semantic algorithm if no client session key is provided.
+  const finalApiKey = apiKey || (window as any).GEMINI_API_KEY;
   
   if (!finalApiKey || !query.trim() || products.length === 0) {
     // Graceful fallback to client-side scoring

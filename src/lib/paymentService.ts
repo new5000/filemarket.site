@@ -9,84 +9,84 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettingsData = {
   stripe: {
     enabled: true,
     mode: 'sandbox',
-    publishableKey: 'pk_test_51MzSAMPLEKEYSTRIPE00000000000000000000000000000000000000000000000000000000000000000000000000',
-    secretKey: 'sk_test_51MzSAMPLESECRETSTRIPE0000000000000000000000000000000000000000000000000000000000000000000000',
+    publishableKey: import.meta.env?.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_sample_stripe_filemarket',
+    secretKey: '', // Sensitive: kept server-side only
     currency: 'USD'
   },
   paypal: {
     enabled: true,
     mode: 'sandbox',
-    clientId: 'sb-sample-client-id-filemarket-sandbox-paypal-001',
-    secretKey: 'EM_sample_secret_paypal_sandbox_key_filemarket',
+    clientId: import.meta.env?.VITE_PAYPAL_CLIENT_ID || 'sb-sample-paypal-client-id',
+    secretKey: '', // Sensitive: kept server-side only
     currency: 'USD'
   },
   shurjopay: {
     enabled: true,
     mode: 'sandbox',
-    merchantUsername: 'sp_sandbox_merchant',
-    merchantPassword: 'sp_sandbox_password',
+    merchantUsername: import.meta.env?.VITE_SHURJOPAY_USERNAME || 'sp_sandbox_merchant',
+    merchantPassword: '', // Sensitive: kept server-side only
     keyPrefix: 'NOK',
     currency: 'BDT'
   },
   sslcommerz: {
     enabled: true,
     mode: 'sandbox',
-    storeId: 'testbox',
-    storePassword: 'qwerty',
+    storeId: import.meta.env?.VITE_SSLCOMMERZ_STORE_ID || 'testbox',
+    storePassword: '', // Sensitive: kept server-side only
     currency: 'BDT'
   },
   aamarpay: {
     enabled: true,
     mode: 'sandbox',
-    storeId: 'aamarpaytest',
-    signatureKey: 'dbb74894e82415a2f7ff0ec3a97e4183',
+    storeId: import.meta.env?.VITE_AAMARPAY_STORE_ID || 'aamarpaytest',
+    signatureKey: '', // Sensitive: kept server-side only
     currency: 'BDT'
   },
   razorpay: {
     enabled: true,
     mode: 'sandbox',
-    keyId: 'rzp_test_samplekey12345',
-    keySecret: 'sample_secret_razorpay_9988',
+    keyId: import.meta.env?.VITE_RAZORPAY_KEY_ID || 'rzp_test_sample_razorpay_key',
+    keySecret: '', // Sensitive: kept server-side only
     currency: 'INR'
   },
   mollie: {
     enabled: false,
     mode: 'sandbox',
-    apiKey: 'test_dHar4JYDxFaSeWSGgapxTAhgkJbcQg',
+    apiKey: '', // Sensitive: kept server-side only
     currency: 'EUR'
   },
   paystack: {
     enabled: false,
     mode: 'sandbox',
-    publicKey: 'pk_test_sample_paystack_public_key_9999',
-    secretKey: 'sk_test_sample_paystack_secret_key_8888',
+    publicKey: import.meta.env?.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_sample_paystack',
+    secretKey: '', // Sensitive: kept server-side only
     currency: 'NGN'
   },
   flutterwave: {
     enabled: false,
     mode: 'sandbox',
-    publicKey: 'FLWPUBK_TEST-sample_flutterwave_key_001',
-    secretKey: 'FLWSECK_TEST-sample_flutterwave_secret_001',
-    encryptionKey: 'FLWSECK_TEST_ENC_SAMPLE',
+    publicKey: import.meta.env?.VITE_FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK_TEST-sample_flutterwave',
+    secretKey: '', // Sensitive: kept server-side only
+    encryptionKey: '', // Sensitive: kept server-side only
     currency: 'USD'
   },
   mercadopago: {
     enabled: false,
     mode: 'sandbox',
-    publicKey: 'TEST-sample-mercadopago-public-key',
-    accessToken: 'TEST-sample-mercadopago-access-token-001',
+    publicKey: import.meta.env?.VITE_MERCADOPAGO_PUBLIC_KEY || 'TEST-sample-mercadopago',
+    accessToken: '', // Sensitive: kept server-side only
     currency: 'BRL'
   },
   coinbase: {
-    enabled: true,
+    enabled: false,
     mode: 'sandbox',
-    apiKey: 'sample_coinbase_commerce_api_key_12345',
-    webhookSecret: 'sample_coinbase_webhook_secret'
+    apiKey: '',
+    webhookSecret: ''
   },
   skrill: {
     enabled: false,
-    merchantEmail: 'merchant@filemarket.site',
-    secretWord: 'FileMarketSkrillSecret2026'
+    merchantEmail: import.meta.env?.VITE_SKRILL_MERCHANT_EMAIL || 'merchant@filemarket.site',
+    secretWord: ''
   },
   bkash: {
     enabled: true,

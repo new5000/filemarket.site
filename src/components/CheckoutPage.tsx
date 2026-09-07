@@ -67,6 +67,7 @@ import {
 import { subscribeCoupons, validateCoupon, Coupon, CouponValidationResult } from '../lib/couponService';
 import { uploadPaymentReceipt } from '../lib/storageService';
 import { useCart } from '../context/CartContext';
+import { notifyAdminOnTelegram } from '../utils/telegramNotify';
 
 export interface CheckoutPageProps {
   product?: Product;
@@ -723,37 +724,23 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
       // Dispatch Telegram Notification for Admin in background
       try {
-        const BOT_TOKEN = "8293279827:AAFn12Cb-NKOHkv2rdhLjLcm8gdNkqkcKQ8";
-        const CHAT_ID = "5570892539";
         const gatewayName = selectedCustomGateway ? selectedCustomGateway.name : selectedGateway.toUpperCase();
-
         const orderTitle = isCartMode 
           ? `Cart Checkout: ${checkoutState.items.length} Assets (${checkoutState.items.map(i => i.title).slice(0, 3).join(', ')}${checkoutState.items.length > 3 ? '...' : ''})`
           : primaryProduct.title;
 
-        const alertMessage = 
-`🚨 *NEW ORDER ${isAutomatedGateway ? '✅ AUTO-FULFILLED' : '⏳ PENDING'}* 🚨
-━━━━━━━━━━━━━━━━━━━━━
-📦 *Product:* ${orderTitle} (${isPhysical ? 'Physical Goods' : 'Digital Asset'})
-💰 *Amount:* ${formatCurrencyAmount(convertedGatewayAmount, gatewayCurrency)} (${effectiveTotalBDT} BDT / $${effectiveTotalUSD} USD)
-💳 *Gateway:* ${gatewayName} (${isAutomatedGateway ? 'Instant Automated' : 'Manual'})
-🔢 *TrxID:* \`${generatedTrxId}\`
-👤 *Customer:* ${orderEmail}
-${isPhysical ? `🚚 *Ship To:* ${shippingName} (${shippingPhone}), ${shippingAddress}, ${shippingCity} ${shippingZip}\n` : ''}🆔 *Order ID:* \`${result.orderId}\`
-⚡ *Status:* ${isAutomatedGateway ? 'COMPLETED' : 'PENDING (Admin Approval Required)'}
-⏰ *Time:* ${new Date().toLocaleTimeString()}
-━━━━━━━━━━━━━━━━━━━━━`;
-
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text: alertMessage,
-            parse_mode: 'Markdown',
-            disable_web_page_preview: true
-          }),
-          keepalive: true
+        notifyAdminOnTelegram({
+          productTitle: `${orderTitle} (${isPhysical ? 'Physical Goods' : 'Digital Asset'})`,
+          amount: convertedGatewayAmount,
+          amountBDT: effectiveTotalBDT,
+          amountUSD: effectiveTotalUSD,
+          paymentMethod: `${gatewayName} (${isAutomatedGateway ? 'Instant Automated' : 'Manual'})`,
+          trxId: generatedTrxId,
+          senderNumber: isPhysical ? shippingPhone : (customerPhone || shippingPhone || 'N/A'),
+          userPhone: isPhysical ? shippingPhone : (customerPhone || shippingPhone || 'N/A'),
+          userEmail: orderEmail,
+          orderId: result.orderId,
+          id: result.orderId
         }).catch(console.warn);
       } catch (tgErr) {
         console.warn("Telegram dispatch error:", tgErr);

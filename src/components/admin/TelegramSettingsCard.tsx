@@ -11,7 +11,7 @@ interface TelegramSettingsCardProps {
 export default function TelegramSettingsCard({ onSaved }: TelegramSettingsCardProps) {
   // Controlled state for Telegram Bot Token with local cache initialization
   const [botToken, setBotToken] = useState<string>(() => {
-    return localStorage.getItem('fm_tg_botToken') || '8293279827:AAFn12Cb-NKOHkv2rdhLjLcm8gdNkqkcKQ8';
+    return localStorage.getItem('fm_tg_botToken') || import.meta?.env?.VITE_TELEGRAM_BOT_TOKEN || '';
   });
   const [isEnabled, setIsEnabled] = useState<boolean>(true);
 
@@ -256,7 +256,7 @@ export default function TelegramSettingsCard({ onSaved }: TelegramSettingsCardPr
           </label>
           <input 
             type="text" 
-            placeholder="8293279827:AAFn12Cb-NKOHkv2rdhLjLcm8gdNk..."
+            placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ..."
             value={botToken}
             onChange={(e) => setBotToken(e.target.value)}
             className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, CheckCircle2, ShieldCheck, Download, HardDrive, FileCode, Calendar, Clock, Zap, Check, Sparkles, Share2, Heart, ShoppingBag, Package, Truck } from 'lucide-react';
+import { Star, CheckCircle2, ShieldCheck, Download, HardDrive, FileCode, Calendar, Clock, Zap, Check, Sparkles, Share2, Heart, ShoppingBag, Package, Truck, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Product, Currency } from '../types';
 import { useProducts } from '../context/ProductContext';
@@ -36,11 +36,12 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
   savedProducts = [],
   onToggleSave,
 }) => {
-  const { productGuarantee } = useGlobalSettings();
+  const { productGuarantee, generalConfig } = useGlobalSettings();
   const { products } = useProducts();
   const { addToCart } = useCart();
 
   const isPhysical = product?.productKind === 'physical';
+  const isService = product?.productKind === 'service';
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedQty, setSelectedQty] = useState<number>(1);
@@ -525,25 +526,29 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
           <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-between z-10">
             {/* Left Group (Preview & Rating) */}
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  navigateTo(`/preview/${getProductSlug(product)}`, { title: `Watch Preview: ${product.title} — FileMarket` });
-                }}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
-              >
-                <div className="w-3.5 h-3.5 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg className="w-2.5 h-2.5 fill-current ml-0.5" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-                <span>Watch Preview</span>
-              </button>
+              {product.enableWatchPreview !== false && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigateTo(`/preview/${getProductSlug(product)}`, { title: `Watch Preview: ${product.title} — FileMarket` });
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <div className="w-3.5 h-3.5 rounded-full bg-white/20 flex items-center justify-center">
+                    <svg className="w-2.5 h-2.5 fill-current ml-0.5" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                  <span>{product.watchPreviewButtonText || generalConfig?.watchPreviewButtonText || 'Watch Preview'}</span>
+                </button>
+              )}
 
-              <div className="bg-black/60 backdrop-blur-md text-amber-400 border border-white/10 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                <Star className="w-3.5 h-3.5 fill-[#FFD700]" />
-                <span>{product.rating}</span>
-              </div>
+              {(product.showRating !== false && generalConfig?.showCardRating !== false) && (
+                <div className="bg-black/60 backdrop-blur-md text-amber-400 border border-white/10 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-[#FFD700]" />
+                  <span>{product.rating ?? 4.9}</span>
+                </div>
+              )}
             </div>
 
             {/* Right Group (Social & Engagement) */}
@@ -660,8 +665,30 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
               </div>
             )}
 
+            {/* WhatsApp Direct Order Button for Digital Services */}
+            {(isService || product.whatsappOrderEnabled) && (
+              <div className="mt-5 mb-3">
+                <a
+                  href={(() => {
+                    const phone = (product.whatsappNumber || (generalConfig as any)?.whatsappNumber || '8801673833783').replace(/[^0-9]/g, '');
+                    const defaultMsg = `🚀 *New Digital Service Order / Inquiry - FileMarket*\n━━━━━━━━━━━━━━━━━━━━\n📌 *Service:* ${product.title}\n💰 *Price:* ৳${(product.priceBDT || 0).toLocaleString('en-BD')} BDT\n⚡ *Delivery:* ${product.deliveryTime || '24-48 Hours'}\n\nHello Joy / FileMarket, I want to discuss and order this service. Please let me know how to proceed.`;
+                    const text = encodeURIComponent(product.whatsappMessage || defaultMsg);
+                    return `https://wa.me/${phone}?text=${text}`;
+                  })()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-950/25 border border-emerald-400/40 active:scale-98 transition-all duration-200 cursor-pointer select-none"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current shrink-0" />
+                  <span className="tracking-wide">
+                    {product.whatsappButtonText || 'Order on WhatsApp (সরাসরি হোয়াটসঅ্যাপে অর্ডার)'}
+                  </span>
+                </a>
+              </div>
+            )}
+
             {/* Dual CTA Buttons (Instant Buy + Add to Cart) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 mb-6 sm:mt-7 sm:mb-7">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 mb-6 sm:mt-4 sm:mb-7">
               {/* Premium Crimson Red Buy Button with Soft Red Ambient Glow */}
               <div className="relative group w-full flex items-center justify-center">
                 <div className="absolute -inset-1 bg-gradient-to-r from-red-500 via-rose-500 to-red-500 rounded-2xl opacity-60 blur-md group-hover:opacity-100 group-hover:blur-lg animate-pulse transition-all duration-500 pointer-events-none" />
@@ -672,7 +699,13 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
                   className="relative z-10 w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-red-900/30 border border-red-300/40 active:scale-98 transition-all duration-200 cursor-pointer select-none"
                 >
                   <Zap className="w-4 h-4 fill-amber-300 text-amber-300 shrink-0" />
-                  <span className="tracking-wide">{isPhysical ? 'Buy Now • Parcel Delivery' : 'Buy Now • Instant Access'}</span>
+                  <span className="tracking-wide">
+                    {product.buyButtonText 
+                      ? `${product.buyButtonText} • ${isPhysical ? 'Parcel Delivery' : 'Instant Access'}`
+                      : (generalConfig?.buyButtonText 
+                          ? `${generalConfig.buyButtonText} • ${isPhysical ? 'Parcel Delivery' : 'Instant Access'}`
+                          : (isPhysical ? 'Buy Now • Parcel Delivery' : 'Buy Now • Instant Access'))}
+                  </span>
                 </button>
               </div>
 

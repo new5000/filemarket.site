@@ -27,7 +27,8 @@ import {
   Code,
   PlusCircle,
   Layers,
-  Filter
+  Filter,
+  Tv
 } from 'lucide-react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db, cleanFirestoreData } from '../../lib/firebase';
@@ -38,6 +39,7 @@ import { generateSeoKeywordCluster } from '../../utils/seoKeywordGenerator';
 import { useGlobalSettings } from '../../context/GlobalSettingsContext';
 import { useProducts } from '../../context/ProductContext';
 import { AdminProductEditor } from './AdminProductEditor';
+import { toggleProductInHeroBanner, isProductInHeroBanners } from '../../lib/heroBannerService';
 
 interface AdminProductsViewProps {
   products: Product[];
@@ -52,8 +54,9 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
   isAddModalOpen: externalIsAddModalOpen,
   setIsAddModalOpen: externalSetIsAddModalOpen
 }) => {
-  const { globalConfig } = useGlobalSettings();
+  const { globalConfig, heroBanners } = useGlobalSettings();
   const { deleteProduct: contextDeleteProduct, saveProduct: contextSaveProduct } = useProducts();
+  const [heroProcessingId, setHeroProcessingId] = useState<string | null>(null);
   const cmsCategories = globalConfig?.categories || [];
   let dynamicCategories = cmsCategories.length > 0 
     ? cmsCategories.map(c => typeof c === 'string' ? c : c.name) 
@@ -72,7 +75,7 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [kindFilter, setKindFilter] = useState<'all' | 'digital' | 'physical'>('all');
+  const [kindFilter, setKindFilter] = useState<'all' | 'digital' | 'physical' | 'service'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
@@ -210,7 +213,8 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
     const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
     const matchesKind = kindFilter === 'all' || 
                         (kindFilter === 'physical' && p.productKind === 'physical') ||
-                        (kindFilter === 'digital' && p.productKind !== 'physical');
+                        (kindFilter === 'service' && (p.productKind === 'service' || p.category === 'Digital Services')) ||
+                        (kindFilter === 'digital' && p.productKind !== 'physical' && p.productKind !== 'service' && p.category !== 'Digital Services');
     return matchesSearch && matchesCat && matchesKind;
   });
 
@@ -241,6 +245,18 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
       }
     }
   }, [externalIsAddModalOpen, externalSetIsAddModalOpen]);
+
+  // Support direct ?edit=product_id URL navigation from storefront
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (editId && localProductsList.length > 0) {
+      const match = localProductsList.find(p => String(p.id).toLowerCase() === editId.toLowerCase());
+      if (match) {
+        handleOpenEdit(match);
+      }
+    }
+  }, [localProductsList]);
 
   const handleSaveProduct = async (formData: Partial<Product>) => {
     if (!formData.title || !formData.priceBDT) {
@@ -283,17 +299,33 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
       previewImages: formData.previewImages || formData.gallery || [],
       gallery: formData.previewImages || formData.gallery || [],
       badge: formData.badge || '',
-      rating: Number(formData.rating) || 4.9,
+      rating: formData.rating !== undefined && (formData.rating as any) !== '' && !isNaN(Number(formData.rating))
+        ? Math.min(10, Math.max(1, Number(formData.rating)))
+        : 9.8,
       reviewsCount: Number(formData.reviewsCount) || 12,
       likesCount: formData.likesCount || '8.3k',
+      showFileSize: formData.showFileSize !== false && String(formData.fileSize || '').trim().toLowerCase() !== 'off',
+      showRating: formData.showRating !== false,
       cardSubtitle: formData.cardSubtitle || formData.licenseTerms || (isPhysical ? 'Official Authentic Product' : 'Commercial & Personal Lifetime License'),
       bundleFeatures: activeBundleFeatures,
-      fileSize: formData.fileSize || '420 MB',
+      fileSize: (formData.fileSize !== undefined && formData.fileSize !== null) ? String(formData.fileSize).trim() : '',
+      buyButtonText: (formData.buyButtonText || '').trim(),
+      watchPreviewButtonText: (formData.watchPreviewButtonText || 'Watch Preview').trim(),
+      enableWatchPreview: formData.enableWatchPreview !== false,
       fileFormat: formData.softwareFormat || formData.fileFormat || 'APK / DNG Presets',
       softwareFormat: formData.softwareFormat || formData.fileFormat || 'APK / DNG Presets',
       license: formData.licenseTerms || formData.license || 'Lifetime VIP Access',
       licenseTerms: formData.licenseTerms || formData.license || 'Lifetime VIP Access',
-      instantDownloadLink: isPhysical ? (formData.instantDownloadLink || 'physical-shipment') : (formData.instantDownloadLink || ''),
+      instantDownloadLink: isPhysical 
+        ? (formData.instantDownloadLink || 'physical-shipment') 
+        : (formData.productKind === 'service' 
+            ? (formData.instantDownloadLink || 'whatsapp-service-delivery') 
+            : (formData.instantDownloadLink || '')),
+      deliveryTime: (formData.deliveryTime || '').trim(),
+      whatsappNumber: (formData.whatsappNumber || '').trim(),
+      whatsappMessage: (formData.whatsappMessage || '').trim(),
+      whatsappOrderEnabled: Boolean(formData.whatsappOrderEnabled || formData.productKind === 'service'),
+      whatsappButtonText: (formData.whatsappButtonText || '').trim(),
       previewVideoUrl: firstPlayerUrl,
       demoUrl: firstPlayerUrl,
       previewWebsiteUrl: formData.liveDemoUrl || formData.previewWebsiteUrl || '',
@@ -405,6 +437,23 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
     onRefresh();
   };
 
+  const handleToggleHeroSlide = async (p: Product) => {
+    setHeroProcessingId(String(p.id));
+    try {
+      const res = await toggleProductInHeroBanner(p);
+      if (res.success) {
+        showToast(res.message, 'success');
+        onRefresh();
+      } else {
+        showToast(res.message, 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Error updating Hero Slider', 'error');
+    } finally {
+      setHeroProcessingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
@@ -474,6 +523,17 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setKindFilter('service')}
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 ${
+              kindFilter === 'service'
+                ? 'bg-amber-400 text-slate-950 shadow-xs font-black'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            🛠️ Services
+          </button>
+          <button
+            type="button"
             onClick={() => setKindFilter('physical')}
             className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 ${
               kindFilter === 'physical'
@@ -507,11 +567,16 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
                 <th className="py-3.5 px-4">Category</th>
                 <th className="py-3.5 px-4">Price (BDT / USD)</th>
                 <th className="py-3.5 px-4">Badge / Status</th>
+                <th className="py-3.5 px-4 text-center">Hero Slider</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
-              {filteredProducts.map((p) => (
+              {filteredProducts.map((p) => {
+                const inHero = isProductInHeroBanners(p, heroBanners?.banners || []);
+                const isProcessingThis = heroProcessingId === String(p.id);
+
+                return (
                 <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition">
                   {/* Thumbnail & Title */}
                   <td className="py-3 px-4">
@@ -528,8 +593,34 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
                           <span>•</span>
                           {p.productKind === 'physical' ? (
                             <span className="text-cyan-600 dark:text-cyan-400 font-bold">📦 Physical (Stock: {p.stockQuantity ?? 0})</span>
+                          ) : p.productKind === 'service' || p.category === 'Digital Services' ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                              💬 WhatsApp Service {p.deliveryTime ? `(${p.deliveryTime})` : ''}
+                            </span>
                           ) : (
-                            <span>⚡ Digital ({p.fileSize || 'Direct'})</span>
+                            <span className="inline-flex items-center gap-1.5 font-bold">
+                              <span>⚡ Size:</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEdit(p);
+                                }}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-black cursor-pointer transition ${
+                                  (p.showFileSize !== false && Boolean(p.fileSize) && p.fileSize.toLowerCase() !== 'off')
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                                    : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'
+                                }`}
+                                title="Click to edit or toggle File Size in Admin Editor"
+                              >
+                                {(p.showFileSize !== false && Boolean(p.fileSize) && p.fileSize.toLowerCase() !== 'off')
+                                  ? p.fileSize
+                                  : 'OFF (Hidden)'}
+                              </button>
+                              {p.showRating === false && (
+                                <span className="text-rose-500 text-[9px] font-bold">★ Rating OFF</span>
+                              )}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -565,9 +656,47 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
                     </button>
                   </td>
 
+                  {/* 1-Click Hero Slider Column */}
+                  <td className="py-3 px-4 text-center">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleHeroSlide(p)}
+                      disabled={isProcessingThis}
+                      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[11px] transition shadow-xs cursor-pointer active:scale-95 group/hero ${
+                        inHero
+                          ? 'bg-amber-500/15 hover:bg-rose-500/20 text-amber-600 dark:text-amber-400 hover:text-rose-600 dark:hover:text-rose-400 border border-amber-500/30 hover:border-rose-500/30'
+                          : 'bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-slate-950 border border-emerald-500/20 hover:border-emerald-500'
+                      } ${isProcessingThis ? 'opacity-50 cursor-wait' : ''}`}
+                      title={inHero ? "Featured in Hero Slider (Click to remove in 1-click)" : "Add this product to Homepage Hero Slider in 1-click"}
+                    >
+                      <Tv className="w-3.5 h-3.5" />
+                      {inHero ? (
+                        <>
+                          <span className="group-hover/hero:hidden">✓ In Hero</span>
+                          <span className="hidden group-hover/hero:inline">Remove</span>
+                        </>
+                      ) : (
+                        <span>+ Add to Hero</span>
+                      )}
+                    </button>
+                  </td>
+
                   {/* Actions */}
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleHeroSlide(p)}
+                        disabled={isProcessingThis}
+                        className={`p-2 rounded-lg transition cursor-pointer ${
+                          inHero
+                            ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-slate-950'
+                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-slate-950'
+                        }`}
+                        title={inHero ? "In Hero Slider (Click to remove)" : "1-Click Add to Homepage Hero Slider"}
+                      >
+                        <Tv className="w-3.5 h-3.5" />
+                      </button>
                       <a
                         href={p.instantDownloadLink}
                         target="_blank"
@@ -601,7 +730,8 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>

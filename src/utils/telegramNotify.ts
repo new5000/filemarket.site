@@ -18,8 +18,22 @@ export interface OrderInfoPayload {
 }
 
 export const notifyAdminOnTelegram = async (orderInfo: OrderInfoPayload): Promise<boolean> => {
-  const BOT_TOKEN = "8293279827:AAFn12Cb-NKOHkv2rdhLjLcm8gdNkqkcKQ8";
-  const CHAT_ID = "5570892539";
+  // Move all tokens to environment variables or dynamic settings - never hardcode secrets in source
+  const BOT_TOKEN = (
+    import.meta?.env?.VITE_TELEGRAM_BOT_TOKEN || 
+    (typeof window !== 'undefined' ? localStorage.getItem('fm_tg_botToken') : '') || 
+    ''
+  ).trim();
+
+  const CHAT_ID = (
+    import.meta?.env?.VITE_TELEGRAM_CHAT_ID || 
+    (typeof window !== 'undefined' ? localStorage.getItem('fm_tg_chatId') : '') || 
+    ''
+  ).trim();
+
+  if (!BOT_TOKEN || !CHAT_ID) {
+    return false;
+  }
 
   const productTitle = orderInfo.productTitle || 'Digital Product';
   const rawAmt = orderInfo.amount ?? orderInfo.amountBDT ?? 0;
@@ -62,14 +76,13 @@ export const notifyAdminOnTelegram = async (orderInfo: OrderInfoPayload): Promis
     });
     
     const result = await response.json();
-    console.log("Telegram alert response:", result);
 
     if (result.ok) {
       return true;
     }
 
     // Fallback if Markdown entity parsing failed due to special characters in title/email
-    console.warn("Markdown Telegram alert rejected by API, attempting plain text fallback:", result.description);
+    console.warn("Markdown Telegram alert rejected by API, attempting plain text fallback.");
     const plainText = 
 `🚨 NEW ORDER PLACED! 🚨
 ━━━━━━━━━━━━━━━━━━━━━
@@ -97,7 +110,6 @@ export const notifyAdminOnTelegram = async (orderInfo: OrderInfoPayload): Promis
       })
     });
     const fallbackResult = await fallbackResponse.json();
-    console.log("Plaintext Telegram alert fallback response:", fallbackResult);
     return Boolean(fallbackResult.ok);
   } catch (err) {
     console.error("Critical Telegram Alert Error:", err);
