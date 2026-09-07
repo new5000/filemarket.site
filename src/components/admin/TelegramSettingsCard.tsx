@@ -279,12 +279,12 @@ export default function TelegramSettingsCard({ onSaved }: TelegramSettingsCardPr
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+        <div className="grid grid-cols-2 sm:flex items-center gap-2 pt-1">
           <button 
             type="button"
             onClick={handleSaveTelegram}
             disabled={isSaving}
-            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="w-full sm:w-auto px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
             <span>{isSaving ? 'Saving...' : 'Save Token'}</span>
@@ -294,7 +294,7 @@ export default function TelegramSettingsCard({ onSaved }: TelegramSettingsCardPr
             type="button"
             onClick={handleSendTestAlert}
             disabled={isTesting || !botToken.trim()}
-            className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 border border-slate-200 dark:border-slate-700"
+            className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 border border-slate-200 dark:border-slate-700"
           >
             {isTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5 text-sky-500" />}
             <span>Test Alert</span>

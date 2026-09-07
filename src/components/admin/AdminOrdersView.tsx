@@ -140,7 +140,15 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({
   };
 
   const handleDelete = async (order: AdminOrder) => {
-    if (!window.confirm(`Delete order ${order.id}? Access to "${order.productTitle}" will be revoked from the customer's Cloud Locker.`)) {
+    let confirmed = true;
+    try {
+      if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+        confirmed = window.confirm(`Delete order ${order.id}? Access to "${order.productTitle}" will be revoked from the customer's Cloud Locker.`);
+      }
+    } catch {
+      confirmed = true;
+    }
+    if (!confirmed) {
       return;
     }
     setActionLoadingId(order.id);

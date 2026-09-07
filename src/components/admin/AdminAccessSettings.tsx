@@ -55,9 +55,16 @@ export default function AdminAccessSettings({ onUpdated }: AdminAccessSettingsPr
       return;
     }
 
-    const confirmChange = window.confirm(
-      `⚠️ WARNING: If you change this to "${sanitizedEmail}", only this specific email will be able to access the Admin Panel in the future. Do you want to proceed?`
-    );
+    let confirmChange = true;
+    try {
+      if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+        confirmChange = window.confirm(
+          `⚠️ WARNING: If you change this to "${sanitizedEmail}", only this specific email will be able to access the Admin Panel in the future. Do you want to proceed?`
+        );
+      }
+    } catch {
+      confirmChange = true;
+    }
 
     if (!confirmChange) return;
 
@@ -111,18 +118,34 @@ export default function AdminAccessSettings({ onUpdated }: AdminAccessSettingsPr
       <form onSubmit={handleUpdateAdminEmail} className="space-y-3">
         <div>
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-            Master Admin Gmail
+            Admin Gmail
           </label>
-          <div className="relative">
-            <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
-            <input
-              type="email"
-              required
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="admin@gmail.com"
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition font-mono"
-            />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1 min-w-0">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="email"
+                required
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                placeholder="admin@gmail.com"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition font-mono"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 h-[42px]"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <span>Save</span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -136,23 +159,6 @@ export default function AdminAccessSettings({ onUpdated }: AdminAccessSettingsPr
             <span className="text-[11px]">{statusMsg}</span>
           </div>
         )}
-
-        <div className="pt-1">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Updating...</span>
-              </>
-            ) : (
-              <span>Save Admin Gmail</span>
-            )}
-          </button>
-        </div>
       </form>
     </div>
   );
