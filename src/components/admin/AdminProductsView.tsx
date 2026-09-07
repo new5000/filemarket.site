@@ -310,6 +310,8 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
       bundleFeatures: activeBundleFeatures,
       fileSize: (formData.fileSize !== undefined && formData.fileSize !== null) ? String(formData.fileSize).trim() : '',
       buyButtonText: (formData.buyButtonText || '').trim(),
+      buyButtonIcon: formData.buyButtonIcon || 'default',
+      buyButtonColor: formData.buyButtonColor || 'default',
       watchPreviewButtonText: (formData.watchPreviewButtonText || 'Watch Preview').trim(),
       enableWatchPreview: formData.enableWatchPreview !== false,
       fileFormat: formData.softwareFormat || formData.fileFormat || 'APK / DNG Presets',
@@ -619,6 +621,12 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
                               </button>
                               {p.showRating === false && (
                                 <span className="text-rose-500 text-[9px] font-bold">★ Rating OFF</span>
+                              )}
+                              {p.buyButtonText && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                  <span>🔘 Button:</span>
+                                  <span>"{p.buyButtonText}"</span>
+                                </span>
                               )}
                             </span>
                           )}

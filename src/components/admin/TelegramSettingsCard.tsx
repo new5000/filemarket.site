@@ -195,80 +195,73 @@ export default function TelegramSettingsCard({ onSaved }: TelegramSettingsCardPr
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl space-y-4 shadow-xl shadow-slate-900/5 transition-colors duration-200">
-      {/* Card Header & Live Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 rounded-2xl space-y-4 shadow-xl shadow-slate-900/5">
+      {/* Header & Toggle */}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
           <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white font-heading flex items-center gap-2">
-            <span className="p-1.5 rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20">
+            <span className="p-1.5 rounded-xl bg-sky-500/10 text-sky-500">
               <Send className="w-4 h-4" />
             </span>
-            Telegram Live Order Alerts
+            <span>Telegram Order Alerts</span>
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Receive instant push notifications on your phone whenever an order is submitted on FileMarket.
-          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setShowGuide(!showGuide)}
             className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
           >
             <HelpCircle className="w-3.5 h-3.5" />
-            {showGuide ? 'Hide Setup Guide' : 'Setup Guide'}
+            <span className="hidden sm:inline">{showGuide ? 'Hide Guide' : 'Setup Guide'}</span>
           </button>
 
-          <label className="flex items-center gap-2 cursor-pointer select-none bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {isEnabled ? 'Enabled' : 'Disabled'}
-            </span>
+          <label className="flex items-center gap-1.5 cursor-pointer bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
             <input 
               type="checkbox"
               checked={isEnabled}
               onChange={(e) => setIsEnabled(e.target.checked)}
-              className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+              className="w-3.5 h-3.5 accent-emerald-500 rounded cursor-pointer"
             />
+            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+              {isEnabled ? 'ON' : 'OFF'}
+            </span>
           </label>
         </div>
       </div>
 
       {/* Quick Setup Guide Drawer */}
       {showGuide && (
-        <div className="p-4 rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 text-xs text-slate-700 dark:text-slate-300 space-y-2 animate-in fade-in duration-200">
-          <div className="font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
-            <BellRing className="w-4 h-4" /> How to connect your Telegram in 1 minute:
+        <div className="p-3.5 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
+          <div className="font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1 text-[11px]">
+            <BellRing className="w-3.5 h-3.5" /> Quick Telegram Setup:
           </div>
-          <ol className="list-decimal list-inside space-y-1.5 text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
-            <li>Open Telegram and message <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-sky-600 dark:text-sky-400 font-bold underline inline-flex items-center gap-0.5">@BotFather <ExternalLink className="w-2.5 h-2.5" /></a>.</li>
-            <li>Send <code className="px-1 py-0.5 bg-sky-100 dark:bg-sky-900 rounded font-mono text-sky-800 dark:text-sky-200">/newbot</code>, choose a name and username (e.g. <code>MyFileMarketAlertBot</code>).</li>
-            <li>Copy the generated <strong>API Token</strong> and paste it into the field below.</li>
-            <li><strong className="text-slate-900 dark:text-white">CRITICAL:</strong> Open your newly created bot in Telegram and press <strong>START</strong> (or send <code>/start</code>) so it can deliver order alerts to you automatically.</li>
+          <ol className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-400 text-[11px]">
+            <li>Open Telegram and message <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-sky-600 font-bold underline inline-flex items-center gap-0.5">@BotFather <ExternalLink className="w-2.5 h-2.5" /></a></li>
+            <li>Send <code className="px-1 py-0.2 bg-sky-100 dark:bg-sky-900 rounded font-mono">/newbot</code> to get your API Token</li>
+            <li>Paste the token below, then send <code className="px-1 py-0.2 bg-sky-100 dark:bg-sky-900 rounded font-mono">/start</code> to your bot</li>
           </ol>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-1">
-            <Key className="w-3.5 h-3.5 text-slate-400" /> Telegram Bot Token
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 mb-1">
+            <Key className="w-3.5 h-3.5 text-slate-400" />
+            <span>Bot Token</span>
           </label>
           <input 
             type="text" 
             placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ..."
             value={botToken}
             onChange={(e) => setBotToken(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 font-mono focus:outline-none focus:border-emerald-500"
           />
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1">
-            <span>💡</span>
-            <span>Tip: Open your bot in Telegram and send <strong className="text-slate-700 dark:text-slate-200">/start</strong> once so it can auto-detect your chat and deliver alerts.</span>
-          </p>
         </div>
 
         {statusMsg && (
-          <div className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2.5 animate-in fade-in duration-150 ${
+          <div className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
             statusMsg.type === 'success' 
               ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
               : statusMsg.type === 'info'
@@ -282,29 +275,29 @@ export default function TelegramSettingsCard({ onSaved }: TelegramSettingsCardPr
             ) : (
               <AlertCircle className="w-4 h-4 shrink-0" />
             )}
-            <span className="leading-snug">{statusMsg.text}</span>
+            <span className="leading-snug text-[11px]">{statusMsg.text}</span>
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
+        <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
           <button 
             type="button"
             onClick={handleSaveTelegram}
             disabled={isSaving}
-            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-emerald-500/15 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-            {isSaving ? 'Saving...' : '✓ Save Telegram Token'}
+            <span>{isSaving ? 'Saving...' : 'Save Token'}</span>
           </button>
 
           <button
             type="button"
             onClick={handleSendTestAlert}
             disabled={isTesting || !botToken.trim()}
-            className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed border border-slate-200 dark:border-slate-700"
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 border border-slate-200 dark:border-slate-700"
           >
             {isTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5 text-sky-500" />}
-            ✉ Send Test Alert
+            <span>Test Alert</span>
           </button>
         </div>
       </div>

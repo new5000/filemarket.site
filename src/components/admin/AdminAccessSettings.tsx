@@ -93,32 +93,25 @@ export default function AdminAccessSettings({ onUpdated }: AdminAccessSettingsPr
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl shadow-slate-900/5 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
-              <Shield className="w-4 h-4" />
-            </span>
-            <span>Master Admin Access Control</span>
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Only the account matching this specific Gmail address will have access to the Admin Portal.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Active: <span className="font-mono">{currentMasterEmail}</span>
+    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl shadow-slate-900/5 space-y-4">
+      <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <span className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 shrink-0">
+            <Shield className="w-4 h-4" />
           </span>
-        </div>
+          <span>Admin Access</span>
+        </h3>
+
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 max-w-[180px] sm:max-w-none truncate">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span className="truncate">{currentMasterEmail}</span>
+        </span>
       </div>
 
-      <form onSubmit={handleUpdateAdminEmail} className="space-y-4">
+      <form onSubmit={handleUpdateAdminEmail} className="space-y-3">
         <div>
-          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5">
-            Authorized Master Admin Gmail
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+            Master Admin Gmail
           </label>
           <div className="relative">
             <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
@@ -127,41 +120,36 @@ export default function AdminAccessSettings({ onUpdated }: AdminAccessSettingsPr
               required
               value={adminEmail}
               onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="e.g. yourname@gmail.com"
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition font-mono"
+              placeholder="admin@gmail.com"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition font-mono"
             />
           </div>
         </div>
 
         {statusMsg && (
-          <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+          <div className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
             statusMsg.startsWith('✅') 
               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
               : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
           }`}>
             {statusMsg.startsWith('✅') ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-            <span>{statusMsg}</span>
+            <span className="text-[11px]">{statusMsg}</span>
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
-          <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span>Stored in Firestore <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[10px]">settings/admin_access</code></span>
-          </div>
-
+        <div className="pt-1">
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full sm:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-2xl text-xs transition shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {isSaving ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Updating...</span>
               </>
             ) : (
-              <span>Save & Update Admin Gmail</span>
+              <span>Save Admin Gmail</span>
             )}
           </button>
         </div>

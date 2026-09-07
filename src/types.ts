@@ -83,6 +83,8 @@ export interface Product {
   watchPreviewButtonText?: string;
   enableWatchPreview?: boolean;
   buyButtonText?: string;
+  buyButtonIcon?: string;
+  buyButtonColor?: string;
   enableGallery?: boolean;
   enableVideo?: boolean;
   previewImages?: string[];

@@ -71,6 +71,8 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
         watchPreviewButtonText: initialProduct.watchPreviewButtonText || 'Watch Preview',
         enableWatchPreview: initialProduct.enableWatchPreview !== false,
         buyButtonText: initialProduct.buyButtonText || '',
+        buyButtonIcon: (initialProduct as any).buyButtonIcon || 'default',
+        buyButtonColor: (initialProduct as any).buyButtonColor || 'default',
         cardSubtitle: initialProduct.cardSubtitle || initialProduct.licenseTerms || initialProduct.license || 'Commercial & Personal Lifetime License',
         productKind: initialProduct.productKind || 'digital',
         deliveryTime: initialProduct.deliveryTime || '24-48 Hours',
@@ -116,6 +118,8 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
       watchPreviewButtonText: 'Watch Preview',
       enableWatchPreview: true,
       buyButtonText: '',
+      buyButtonIcon: 'default',
+      buyButtonColor: 'default',
       cardSubtitle: 'Commercial & Personal Lifetime License',
       productKind: 'digital',
       deliveryTime: '24-48 Hours',
@@ -166,6 +170,8 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
         watchPreviewButtonText: initialProduct.watchPreviewButtonText || prev.watchPreviewButtonText || 'Watch Preview',
         enableWatchPreview: initialProduct.enableWatchPreview !== false,
         buyButtonText: initialProduct.buyButtonText || prev.buyButtonText || '',
+        buyButtonIcon: (initialProduct as any).buyButtonIcon || prev.buyButtonIcon || 'default',
+        buyButtonColor: (initialProduct as any).buyButtonColor || prev.buyButtonColor || 'default',
         liveDemoEnabled: initialProduct.liveDemoEnabled !== false,
         liveDemoUrl: initialProduct.liveDemoUrl || initialProduct.previewWebsiteUrl || prev.liveDemoUrl || '',
         liveDemoButtonText: initialProduct.liveDemoButtonText || prev.liveDemoButtonText || 'Open Full Interactive Live Demo Website ↗',
@@ -264,6 +270,8 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
       watchPreviewButtonText: formData.watchPreviewButtonText || 'Watch Preview',
       enableWatchPreview: formData.enableWatchPreview !== false,
       buyButtonText: (formData.buyButtonText || '').trim(),
+      buyButtonIcon: formData.buyButtonIcon || 'default',
+      buyButtonColor: formData.buyButtonColor || 'default',
       liveDemoUrl: effectiveDemoUrl,
       previewWebsiteUrl: effectiveDemoUrl,
       liveDemoEnabled: Boolean(formData.liveDemoEnabled && effectiveDemoUrl),
@@ -743,6 +751,141 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
                       />
                     </div>
                     <span className="text-[10px] text-slate-400 mt-1 block">আন্তর্জাতিক কার্ড/পেপ্যালের জন্য</span>
+                  </div>
+                </div>
+
+                {/* Primary "Buy / Order" Action Button Customization */}
+                <div className="pt-5 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
+                      <span className="p-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        <Zap className="w-4 h-4" />
+                      </span>
+                      <span>Product Card Action Button (বাটন টেক্সট ও ডিজাইন)</span>
+                    </label>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
+                      Editable for this product
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    এই প্রোডাক্টের কার্ডে প্রদর্শিত প্রধান বাটনের টেক্সট, আইকন ও কালার পরিবর্তন করতে পারেন। ফাঁকা রাখলে গ্লোবাল সেটিংস অনুযায়ী (যেমন: "Buy" / "Order") দেখাবে।
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                        Button Label / বাটন টেক্সট
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Default (খালি রাখলে Buy / কিনুন)"
+                        value={formData.buyButtonText || ''}
+                        onChange={(e) => setFormData({ ...formData, buyButtonText: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <span className="text-[10px] text-slate-400 font-semibold">কুইক প্রিসেট:</span>
+                        {['Buy', 'Buy Now', 'Order Now', '⚡ কিনুন', 'Download', 'Get Access'].map(preset => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, buyButtonText: preset })}
+                            className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 hover:text-emerald-600 transition cursor-pointer"
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                        Button Icon / বাটন আইকন
+                      </label>
+                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-1">
+                        {[
+                          { id: 'default', label: 'Default', icon: '⚡' },
+                          { id: 'lightning', label: '⚡ Bolt', icon: '⚡' },
+                          { id: 'cart', label: '🛒 Cart', icon: '🛒' },
+                          { id: 'download', label: '📥 Down', icon: '📥' },
+                          { id: 'chat', label: '💬 Chat', icon: '💬' },
+                          { id: 'fire', label: '🔥 Fire', icon: '🔥' },
+                          { id: 'none', label: 'None', icon: '🚫' }
+                        ].map(item => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, buyButtonIcon: item.id })}
+                            className={`py-1.5 px-1 rounded-xl border text-center font-bold text-xs flex flex-col items-center justify-center gap-0.5 transition cursor-pointer ${
+                              (formData.buyButtonIcon || 'default') === item.id
+                                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30'
+                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            <span className="text-sm">{item.icon}</span>
+                            <span className="text-[8px] truncate max-w-full">{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                        Button Color Theme / কালার থিম
+                      </label>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                        {[
+                          { id: 'default', label: 'Default', bg: 'bg-emerald-500' },
+                          { id: 'emerald', label: 'Emerald', bg: 'bg-emerald-500' },
+                          { id: 'indigo', label: 'Indigo', bg: 'bg-indigo-600' },
+                          { id: 'amber', label: 'Amber', bg: 'bg-amber-500' },
+                          { id: 'rose', label: 'Rose', bg: 'bg-rose-500' },
+                          { id: 'violet', label: 'Violet', bg: 'bg-violet-600' }
+                        ].map(theme => (
+                          <button
+                            key={theme.id}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, buyButtonColor: theme.id })}
+                            className={`py-1.5 px-1 rounded-xl border text-center font-bold text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer ${
+                              (formData.buyButtonColor || 'default') === theme.id
+                                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-slate-100 dark:bg-slate-800'
+                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                            }`}
+                          >
+                            <span className={`w-3 h-3 rounded-full ${theme.bg}`} />
+                            <span className="text-[8px] text-slate-600 dark:text-slate-300 truncate max-w-full">{theme.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                        Live Preview / কার্ডে যেমন দেখাবে
+                      </label>
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-500">বাটন প্রিভিউ:</span>
+                        <div className={`px-4 py-2 rounded-xl text-white font-black text-xs shadow-md flex items-center gap-1.5 select-none ${
+                          formData.buyButtonColor === 'indigo' ? 'bg-gradient-to-r from-indigo-500 to-indigo-600' :
+                          formData.buyButtonColor === 'amber' ? 'bg-gradient-to-r from-amber-500 to-amber-600' :
+                          formData.buyButtonColor === 'rose' ? 'bg-gradient-to-r from-rose-500 to-rose-600' :
+                          formData.buyButtonColor === 'violet' ? 'bg-gradient-to-r from-violet-500 to-violet-600' :
+                          'bg-gradient-to-r from-emerald-500 to-emerald-600'
+                        }`}>
+                          {formData.buyButtonIcon !== 'none' && (
+                            <span>
+                              {formData.buyButtonIcon === 'cart' ? '🛒' :
+                               formData.buyButtonIcon === 'download' ? '📥' :
+                               formData.buyButtonIcon === 'chat' ? '💬' :
+                               formData.buyButtonIcon === 'fire' ? '🔥' : '⚡'}
+                            </span>
+                          )}
+                          <span>{formData.buyButtonText || 'Buy'}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1382,16 +1525,37 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                      <Zap className="w-3.5 h-3.5 text-emerald-500" /> "Buy" Button Label
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-3.5 h-3.5 text-emerald-500" /> "Buy" Button Label &amp; Icon
+                      </span>
+                      {formData.buyButtonText && (
+                        <span className="text-[10px] text-emerald-600 font-bold">Customized</span>
+                      )}
                     </label>
-                    <input
-                      type="text"
-                      placeholder="Default (Buy / কিনুন)"
-                      value={formData.buyButtonText || ''}
-                      onChange={(e) => setFormData({ ...formData, buyButtonText: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Default (Buy / কিনুন)"
+                        value={formData.buyButtonText || ''}
+                        onChange={(e) => setFormData({ ...formData, buyButtonText: e.target.value })}
+                        className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:border-emerald-500"
+                      />
+                      <select
+                        value={formData.buyButtonIcon || 'default'}
+                        onChange={(e) => setFormData({ ...formData, buyButtonIcon: e.target.value })}
+                        className="px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="default">⚡ Default</option>
+                        <option value="lightning">⚡ Bolt</option>
+                        <option value="cart">🛒 Cart</option>
+                        <option value="download">📥 Download</option>
+                        <option value="chat">💬 Chat</option>
+                        <option value="fire">🔥 Fire</option>
+                        <option value="sparkle">✨ Sparkle</option>
+                        <option value="none">🚫 No Icon</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>

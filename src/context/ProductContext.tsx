@@ -39,9 +39,33 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
               }
             }
           );
-          // We do NOT filter drafts here so that the Admin Panel sees them.
-          // Frontend filtering handles drafts appropriately in App.tsx.
-          setProducts(firestoreList);
+          // Merge Firestore list with local cached products to guarantee immediate resilience
+          let mergedList = [...firestoreList];
+          try {
+            const localStr = localStorage.getItem('fm_custom_products');
+            if (localStr) {
+              const localList: Product[] = JSON.parse(localStr);
+              localList.forEach((localProd) => {
+                const idx = mergedList.findIndex((p) => String(p.id) === String(localProd.id));
+                if (idx >= 0) {
+                  mergedList[idx] = { ...mergedList[idx], ...localProd };
+                } else {
+                  mergedList.unshift(localProd);
+                }
+              });
+            }
+          } catch {}
+
+          // Filter out deleted product IDs
+          try {
+            const deletedStr = localStorage.getItem('fm_deleted_product_ids') || '[]';
+            const deletedIds: string[] = JSON.parse(deletedStr);
+            if (deletedIds.length > 0) {
+              mergedList = mergedList.filter((p) => !deletedIds.includes(String(p.id)));
+            }
+          } catch {}
+
+          setProducts(mergedList);
           setLoading(false);
         },
         (error) => {
@@ -64,9 +88,61 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
 
+  // Listen for local real-time product updates from Admin panel
+  useEffect(() => {
+    const handleProductUpdated = (e: any) => {
+      const updatedProduct = e.detail as Product;
+      if (updatedProduct && updatedProduct.id) {
+        setProducts((prev) => {
+          const strId = String(updatedProduct.id);
+          const idx = prev.findIndex((p) => String(p.id) === strId);
+          if (idx >= 0) {
+            const copy = [...prev];
+            copy[idx] = { ...copy[idx], ...updatedProduct };
+            return copy;
+          }
+          return [updatedProduct, ...prev];
+        });
+      }
+    };
+    window.addEventListener('fm_products_updated', handleProductUpdated);
+    return () => window.removeEventListener('fm_products_updated', handleProductUpdated);
+  }, []);
+
   const saveProduct = useCallback(async (product: Product): Promise<void> => {
     const strId = String(product.id);
     const cleanedProduct = prepareProductPayloadForFirestore(product);
+
+    // 1. Optimistic UI update across all storefront and admin components immediately
+    setProducts((prev) => {
+      const idx = prev.findIndex((p) => String(p.id) === strId);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], ...product };
+        return copy;
+      }
+      return [product, ...prev];
+    });
+
+    // 2. Persist to local storage cache immediately
+    try {
+      const localStr = localStorage.getItem('fm_custom_products');
+      let localList: Product[] = localStr ? JSON.parse(localStr) : [];
+      const idx = localList.findIndex(p => String(p.id) === strId);
+      if (idx >= 0) {
+        localList[idx] = product;
+      } else {
+        localList.unshift(product);
+      }
+      localStorage.setItem('fm_custom_products', JSON.stringify(localList));
+    } catch {}
+
+    // 3. Broadcast to all listeners
+    try {
+      window.dispatchEvent(new CustomEvent('fm_products_updated', { detail: product }));
+    } catch {}
+
+    // 4. Save to Firestore
     try {
       await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
     } catch (error) {

@@ -306,6 +306,7 @@ export async function saveAdminProduct(product: Product): Promise<void> {
 
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { savedId: strId } }));
+    window.dispatchEvent(new CustomEvent('fm_products_updated', { detail: product }));
   } catch (err) {
     console.warn("Failed to update local products:", err);
   }

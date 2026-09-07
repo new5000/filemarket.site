@@ -26,6 +26,8 @@ export interface GeneralConfigData {
   playStoreEnabled?: boolean;
   playStoreUrl?: string;
   buyButtonText?: string;
+  buyButtonIcon?: string;
+  buyButtonColor?: string;
   watchPreviewButtonText?: string;
   showCardFileSize?: boolean;
   showCardRating?: boolean;
@@ -142,10 +144,28 @@ export const DEFAULT_HERO_BANNERS: HeroBannersData = {
 export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodsData | null>(null);
-  const [generalConfig, setGeneralConfig] = useState<GeneralConfigData | null>(null);
+  const [generalConfig, setGeneralConfig] = useState<GeneralConfigData | null>(() => {
+    try {
+      const cached = localStorage.getItem('fm_general_config');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [supportLinks, setSupportLinks] = useState<{ whatsappNumber: string; telegramLink: string } | null>(null);
   const [heroBanners, setHeroBanners] = useState<HeroBannersData | null>(null);
   const [productGuarantee, setProductGuarantee] = useState<ProductGuaranteeData | null>(null);
+
+  // Listen for local real-time settings broadcast
+  useEffect(() => {
+    const handleSettingsUpdated = (e: any) => {
+      if (e.detail) {
+        setGeneralConfig(prev => ({ ...prev, ...e.detail }));
+      }
+    };
+    window.addEventListener('fm_settings_updated', handleSettingsUpdated);
+    return () => window.removeEventListener('fm_settings_updated', handleSettingsUpdated);
+  }, []);
 
 
   useEffect(() => {
@@ -187,6 +207,9 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
       if (docSnap.exists()) {
         const data = docSnap.data() as GeneralConfigData;
         setGeneralConfig(data);
+        try {
+          localStorage.setItem('fm_general_config', JSON.stringify(data));
+        } catch {}
         if (data.faviconUrl) {
           const link = (document.querySelector("link[rel~='icon']") as HTMLLinkElement) || document.createElement('link');
           link.type = 'image/x-icon';
