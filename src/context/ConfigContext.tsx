@@ -82,6 +82,7 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               ...(rawData.footerAndBadges || {}),
               copyrightNotice: rawData.footerText || rawData.footerAndBadges?.copyrightNotice || DEFAULT_GLOBAL_CONFIG.footerAndBadges.copyrightNotice,
             },
+            globalAds: rawData.globalAds || DEFAULT_GLOBAL_CONFIG.globalAds,
           };
 
           setGlobalConfig(mergedGlobalConfig);

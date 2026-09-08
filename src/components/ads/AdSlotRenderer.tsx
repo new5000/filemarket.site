@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ExternalLink, X } from 'lucide-react';
-import { GlobalAdSlotConfig, AdSizePreset } from '../../types';
+import { ExternalLink, X, PowerOff, Power } from 'lucide-react';
+import { GlobalAdSlotConfig, AdSizePreset, DEFAULT_GLOBAL_ADS_CONFIG } from '../../types';
 import { useGlobalSettings } from '../../context/GlobalSettingsContext';
+import { auth } from '../../lib/firebase';
+import { saveGlobalConfig } from '../../lib/adminServices';
 
 export type AdSlotKey = 
   | 'footerTopBanner'
@@ -49,6 +51,107 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
   const htmlContainerRef = useRef<HTMLDivElement>(null);
   const [dismissed, setDismissed] = useState(false);
 
+  const checkIsAdmin = () => {
+    const cached = localStorage.getItem('fm_master_admin_email') || 'new144506@gmail.com';
+    const isEmailMatch = Boolean(auth.currentUser?.email && auth.currentUser.email.toLowerCase().trim() === cached.toLowerCase().trim());
+    const hasAdminSession = 
+      localStorage.getItem('fm_admin_logged_in') === 'true' || 
+      localStorage.getItem('fm_is_admin') === 'true' ||
+      Boolean(localStorage.getItem('fm_admin_session'));
+    return isEmailMatch || hasAdminSession;
+  };
+
+  const [isAdmin, setIsAdmin] = useState<boolean>(checkIsAdmin);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(() => {
+      setIsAdmin(checkIsAdmin());
+    });
+    return () => unsub();
+  }, []);
+
+  const handleAdminTurnOff = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!slotKey) return;
+
+    const currentAds: any = { ...(globalConfig?.globalAds || DEFAULT_GLOBAL_ADS_CONFIG) };
+    const currentSlot = currentAds[slotKey] || DEFAULT_GLOBAL_ADS_CONFIG[slotKey as keyof typeof DEFAULT_GLOBAL_ADS_CONFIG] || {};
+    const disabledSlot = { ...currentSlot, enabled: false };
+
+    currentAds[slotKey] = disabledSlot;
+
+    if (slotKey === 'previewMediaTop' || slotKey === 'previewPageTop' || slotKey === 'previewTopAd') {
+      currentAds.previewMediaTop = disabledSlot;
+      currentAds.previewPageTop = disabledSlot;
+      currentAds.previewTopAd = disabledSlot;
+    } else if (slotKey === 'previewMediaBottom' || slotKey === 'previewPageBottom' || slotKey === 'previewBottomAd') {
+      currentAds.previewMediaBottom = disabledSlot;
+      currentAds.previewPageBottom = disabledSlot;
+      currentAds.previewBottomAd = disabledSlot;
+    } else if (slotKey === 'footerTopBanner' || slotKey === 'preFooterBanner' || slotKey === 'footerSponsored') {
+      currentAds.footerTopBanner = disabledSlot;
+      currentAds.preFooterBanner = disabledSlot;
+      currentAds.footerSponsored = disabledSlot;
+    } else if (slotKey === 'footerBottomBanner' || slotKey === 'footerAbsoluteBottom') {
+      currentAds.footerBottomBanner = disabledSlot;
+      currentAds.footerAbsoluteBottom = disabledSlot;
+    }
+
+    setDismissed(true);
+
+    try {
+      await saveGlobalConfig({
+        ...globalConfig,
+        globalAds: currentAds,
+      });
+    } catch (err) {
+      console.error('Failed to turn off ad via admin button:', err);
+    }
+  };
+
+  const handleAdminTurnOn = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!slotKey) return;
+
+    const currentAds: any = { ...(globalConfig?.globalAds || DEFAULT_GLOBAL_ADS_CONFIG) };
+    const fallbackSlot = DEFAULT_GLOBAL_ADS_CONFIG[slotKey as keyof typeof DEFAULT_GLOBAL_ADS_CONFIG] || {};
+    const existingSlot = currentAds[slotKey] || fallbackSlot;
+    const enabledSlot = { ...existingSlot, enabled: true };
+
+    currentAds[slotKey] = enabledSlot;
+    currentAds.enabled = true; // Ensure master toggle is active
+
+    if (slotKey === 'previewMediaTop' || slotKey === 'previewPageTop' || slotKey === 'previewTopAd') {
+      currentAds.previewMediaTop = enabledSlot;
+      currentAds.previewPageTop = enabledSlot;
+      currentAds.previewTopAd = enabledSlot;
+    } else if (slotKey === 'previewMediaBottom' || slotKey === 'previewPageBottom' || slotKey === 'previewBottomAd') {
+      currentAds.previewMediaBottom = enabledSlot;
+      currentAds.previewPageBottom = enabledSlot;
+      currentAds.previewBottomAd = enabledSlot;
+    } else if (slotKey === 'footerTopBanner' || slotKey === 'preFooterBanner' || slotKey === 'footerSponsored') {
+      currentAds.footerTopBanner = enabledSlot;
+      currentAds.preFooterBanner = enabledSlot;
+      currentAds.footerSponsored = enabledSlot;
+    } else if (slotKey === 'footerBottomBanner' || slotKey === 'footerAbsoluteBottom') {
+      currentAds.footerBottomBanner = enabledSlot;
+      currentAds.footerAbsoluteBottom = enabledSlot;
+    }
+
+    setDismissed(false);
+
+    try {
+      await saveGlobalConfig({
+        ...globalConfig,
+        globalAds: currentAds,
+      });
+    } catch (err) {
+      console.error('Failed to turn on ad via admin button:', err);
+    }
+  };
+
   const globalAdsEnabled = globalConfig?.globalAds?.enabled ?? true;
 
   // Resolve slot config with fallback mapping
@@ -59,16 +162,32 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
     const ads = globalConfig.globalAds as any;
 
     if (slotKey === 'footerTopBanner' || slotKey === 'preFooterBanner' || slotKey === 'footerSponsored') {
-      return ads.footerTopBanner || ads.preFooterBanner || ads.footerSponsored;
+      const candidate = ads.footerTopBanner || ads.preFooterBanner || ads.footerSponsored;
+      if (ads.footerTopBanner?.enabled === false || ads.preFooterBanner?.enabled === false) {
+        return { ...(candidate || {}), enabled: false };
+      }
+      return candidate;
     }
     if (slotKey === 'footerBottomBanner' || slotKey === 'footerAbsoluteBottom') {
-      return ads.footerBottomBanner || ads.footerAbsoluteBottom;
+      const candidate = ads.footerBottomBanner || ads.footerAbsoluteBottom;
+      if (ads.footerBottomBanner?.enabled === false || ads.footerAbsoluteBottom?.enabled === false) {
+        return { ...(candidate || {}), enabled: false };
+      }
+      return candidate;
     }
     if (slotKey === 'previewMediaTop' || slotKey === 'previewPageTop' || slotKey === 'previewTopAd') {
-      return ads.previewMediaTop || ads.previewPageTop || ads.previewTopAd;
+      const candidate = ads.previewMediaTop || ads.previewPageTop || ads.previewTopAd;
+      if (ads.previewMediaTop?.enabled === false || ads.previewPageTop?.enabled === false) {
+        return { ...(candidate || {}), enabled: false };
+      }
+      return candidate;
     }
     if (slotKey === 'previewMediaBottom' || slotKey === 'previewPageBottom' || slotKey === 'previewBottomAd') {
-      return ads.previewMediaBottom || ads.previewPageBottom || ads.previewBottomAd;
+      const candidate = ads.previewMediaBottom || ads.previewPageBottom || ads.previewBottomAd;
+      if (ads.previewMediaBottom?.enabled === false || ads.previewPageBottom?.enabled === false) {
+        return { ...(candidate || {}), enabled: false };
+      }
+      return candidate;
     }
     if (slotKey === 'homeTopBanner') {
       return ads.homeTopBanner || ads.headerBanner;
@@ -110,6 +229,25 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
   }, [slot?.code, slot?.enabled, slot?.type]);
 
   if (!globalAdsEnabled || !slot || !slot.enabled || dismissed) {
+    if (isAdmin && slotKey && !dismissed) {
+      return (
+        <div className={`w-full max-w-[728px] mx-auto my-2 py-2 px-3.5 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-2 text-xs select-none transition-all ${className}`}>
+          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[11px] font-medium">
+            <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+            <span>Ad Slot (<strong>{slotKey}</strong>): <span className="text-slate-600 dark:text-slate-300 font-bold uppercase">OFF</span></span>
+          </div>
+          <button
+            type="button"
+            onClick={handleAdminTurnOn}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition shadow-sm cursor-pointer"
+            title="Admin Quick Control: Turn this ad ON"
+          >
+            <Power className="w-3.5 h-3.5" />
+            <span>Turn ON Ad (Admin)</span>
+          </button>
+        </div>
+      );
+    }
     return null;
   }
 
@@ -286,15 +424,32 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
       className={`w-full max-w-[728px] mx-auto my-3 px-2 flex flex-col items-center justify-center overflow-hidden rounded-xl ${className}`}
       style={{ contain: 'content' }}
     >
-      {/* Subtle • SPONSORED label */}
-      {showBadge && (
-        <div className={`w-full flex items-center justify-between px-1 mb-1.5 text-[9px] font-bold ${
-          isDarkContainer ? 'text-slate-500 dark:text-slate-600' : 'text-slate-400 dark:text-slate-500'
-        } uppercase tracking-widest select-none`}>
-          <span className="flex items-center gap-1.5">
-            <span className="text-emerald-500 font-bold">•</span>
-            {bannerBadge}
-          </span>
+      {/* Subtle • SPONSORED label & Admin Quick Controls */}
+      <div className={`w-full flex items-center justify-between px-1 mb-1.5 text-[9px] font-bold ${
+        isDarkContainer ? 'text-slate-500 dark:text-slate-600' : 'text-slate-400 dark:text-slate-500'
+      } uppercase tracking-widest select-none gap-2`}>
+        <div className="flex items-center gap-1.5">
+          {showBadge && (
+            <>
+              <span className="text-emerald-500 font-bold">•</span>
+              <span>{bannerBadge}</span>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isAdmin && slotKey && (
+            <button
+              type="button"
+              onClick={handleAdminTurnOff}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 hover:bg-rose-500 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/20 text-[9px] font-bold tracking-normal transition-colors cursor-pointer"
+              title="Admin Quick Control: Turn off this ad immediately"
+            >
+              <PowerOff className="w-2.5 h-2.5" />
+              <span>Turn OFF Ad (Admin)</span>
+            </button>
+          )}
+
           {onDismiss && (
             <button
               type="button"
@@ -310,7 +465,7 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
             </button>
           )}
         </div>
-      )}
+      </div>
 
       {/* Banner Card */}
       <a

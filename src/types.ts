@@ -87,6 +87,7 @@ export interface Product {
   buyButtonColor?: string;
   enableGallery?: boolean;
   enableVideo?: boolean;
+  enableMediaAd?: boolean;
   previewImages?: string[];
   gallery?: string[];
   previewPlayers?: PreviewPlayer[];

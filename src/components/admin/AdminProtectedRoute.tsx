@@ -52,6 +52,9 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
 
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser?.email && currentUser.email.toLowerCase().trim() === authorizedAdminEmail.trim().toLowerCase()) {
+        try { localStorage.setItem('fm_admin_logged_in', 'true'); } catch {}
+      }
       setLoading(false);
     });
 

@@ -192,10 +192,12 @@ export const WatchPreviewCarousel: React.FC<WatchPreviewCarouselProps> = ({
       )}
 
       {/* Top Media Ad Slot (Cleanly placed directly above the Media Player / Carousel, below tab buttons) */}
-      <AdSlotRenderer 
-        slotKey="previewMediaTop" 
-        className="w-full max-w-[728px] mx-auto my-3"
-      />
+      {product?.enableMediaAd !== false && (
+        <AdSlotRenderer 
+          slotKey="previewMediaTop" 
+          className="w-full max-w-[728px] mx-auto my-3"
+        />
+      )}
 
       {/* Main View: Gallery Slider with Touch Swipe & Click-to-Zoom */}
       {activeTab === 'gallery' && isGalleryAvailable && (

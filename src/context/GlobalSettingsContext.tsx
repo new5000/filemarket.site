@@ -267,7 +267,26 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
     const unsub = subscribeGlobalConfig((config) => {
       setGlobalConfig(config);
     });
-    return () => unsub();
+
+    const handleConfigUpdate = (e: any) => {
+      if (e.detail) {
+        setGlobalConfig(e.detail);
+      } else {
+        try {
+          const saved = localStorage.getItem('fm_global_config');
+          if (saved) setGlobalConfig(JSON.parse(saved));
+        } catch {}
+      }
+    };
+
+    window.addEventListener('fm_global_config_updated', handleConfigUpdate);
+    window.addEventListener('storage', handleConfigUpdate);
+
+    return () => {
+      unsub();
+      window.removeEventListener('fm_global_config_updated', handleConfigUpdate);
+      window.removeEventListener('storage', handleConfigUpdate);
+    };
   }, []);
 
   // 1. Currency state with localStorage persistence (Default: BDT)

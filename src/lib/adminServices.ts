@@ -76,13 +76,44 @@ export function subscribeGlobalConfig(callback: (config: GlobalConfig) => void):
           data.footerAndBadges?.maintenanceMode || 
           false
         );
+        const rawAds = data.globalAds || {};
+        const mergedAds = {
+          ...DEFAULT_GLOBAL_CONFIG.globalAds,
+          ...rawAds,
+        };
+
+        // Explicitly preserve boolean flags if present
+        if (rawAds.enabled !== undefined) {
+          mergedAds.enabled = Boolean(rawAds.enabled);
+        }
+
+        // Keep all slot aliases strictly synchronized so disabled states never get resurrected
+        const syncPairs = [
+          ['previewMediaTop', 'previewPageTop'],
+          ['previewMediaBottom', 'previewPageBottom'],
+          ['footerTopBanner', 'preFooterBanner'],
+          ['footerBottomBanner', 'footerAbsoluteBottom'],
+        ];
+
+        syncPairs.forEach(([primary, alias]) => {
+          if (rawAds[primary] && rawAds[primary].enabled !== undefined) {
+            const isEn = Boolean(rawAds[primary].enabled);
+            mergedAds[primary] = { ...mergedAds[primary], ...rawAds[primary], enabled: isEn };
+            mergedAds[alias] = { ...mergedAds[alias], ...rawAds[primary], enabled: isEn };
+          } else if (rawAds[alias] && rawAds[alias].enabled !== undefined) {
+            const isEn = Boolean(rawAds[alias].enabled);
+            mergedAds[primary] = { ...mergedAds[primary], ...rawAds[alias], enabled: isEn };
+            mergedAds[alias] = { ...mergedAds[alias], ...rawAds[alias], enabled: isEn };
+          }
+        });
+
         const merged: GlobalConfig = {
           maintenance: maintenanceFlag,
           maintenanceMode: maintenanceFlag,
           notice: data.notice || data.branding?.announcement || '',
           telegram: data.telegram || DEFAULT_GLOBAL_CONFIG.telegram,
           branding: { ...DEFAULT_GLOBAL_CONFIG.branding, ...data.branding },
-          globalAds: data.globalAds ? { ...DEFAULT_GLOBAL_CONFIG.globalAds, ...data.globalAds } : DEFAULT_GLOBAL_CONFIG.globalAds,
+          globalAds: mergedAds,
           heroSliders: data.heroSliders && data.heroSliders.length > 0 ? data.heroSliders : DEFAULT_GLOBAL_CONFIG.heroSliders,
           categories: data.categories && data.categories.length > 0 ? data.categories : DEFAULT_GLOBAL_CONFIG.categories,
           paymentGateways: { ...DEFAULT_GLOBAL_CONFIG.paymentGateways, ...data.paymentGateways, ...data.gateways },
@@ -136,11 +167,18 @@ export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
   try {
     await setDoc(doc(db, 'settings', 'global_config'), payload, { merge: true });
     await setDoc(doc(db, 'settings', 'global'), payload, { merge: true });
+    if (payload.globalAds) {
+      await setDoc(doc(db, 'system_settings', 'global_ads'), {
+        globalAds: payload.globalAds,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    }
   } catch (err) {
     console.warn("Firestore save global config error:", err);
   }
   try {
     localStorage.setItem('fm_global_config', JSON.stringify(payload));
+    window.dispatchEvent(new CustomEvent('fm_global_config_updated', { detail: payload }));
     window.dispatchEvent(new Event('storage'));
   } catch {}
 }

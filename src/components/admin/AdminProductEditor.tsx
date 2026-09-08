@@ -4,7 +4,7 @@ import {
   X, Save, Package, Sparkles, Zap, Video, Code, ArrowUp, ArrowDown, Trash2, Check, 
   Link as LinkIcon, Images, Plus, Upload, Loader2, Globe, Eye, EyeOff, Layout, ToggleLeft, ToggleRight,
   Star, Heart, MessageSquare, ShoppingCart, Play, HardDrive, MessageCircle, Clock, Send,
-  CheckCircle2, ChevronRight, ChevronLeft, AlertCircle, Percent, Sliders, Layers
+  CheckCircle2, ChevronRight, ChevronLeft, AlertCircle, Percent, Sliders, Layers, Megaphone
 } from 'lucide-react';
 import { ImageUploadField } from './ImageUploadField';
 import { AdminVideoAdManager } from './AdminVideoAdManager';
@@ -1210,6 +1210,23 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
                       type="checkbox"
                       checked={formData.enableVideo !== false}
                       onChange={(e) => setFormData({ ...formData, enableVideo: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Media Carousel Top Ad Toggle */}
+                  <label className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-emerald-500 transition">
+                    <div className="flex items-center gap-2.5">
+                      <Megaphone className="w-4 h-4 text-amber-500" />
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block">Media Carousel Top Ad (বিজ্ঞাপন ব্যানার)</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">ওয়াচ প্রিভিউ পেজের উপরের বিজ্ঞাপন ব্যানার চালু/বন্ধ রাখুন</span>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData.enableMediaAd !== false}
+                      onChange={(e) => setFormData({ ...formData, enableMediaAd: e.target.checked })}
                       className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
                     />
                   </label>
