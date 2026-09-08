@@ -267,6 +267,7 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
       previewBlocks: formData.previewBlocks || [],
       enableGallery: formData.enableGallery !== false,
       enableVideo: formData.enableVideo !== false,
+      enableMediaAd: formData.enableMediaAd !== false,
       watchPreviewButtonText: formData.watchPreviewButtonText || 'Watch Preview',
       enableWatchPreview: formData.enableWatchPreview !== false,
       buyButtonText: (formData.buyButtonText || '').trim(),

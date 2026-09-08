@@ -8,7 +8,6 @@ import {
   Video, 
   Play,
   Camera,
-  ExternalLink,
   ShieldCheck,
   CheckCircle2,
   Zap,
@@ -16,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Product } from '../types';
 import { DynamicPreviewRenderer } from './DynamicPreviewRenderer';
-import { AdSlotRenderer } from './ads/AdSlotRenderer';
 
 interface WatchPreviewCarouselProps {
   product: Product;
@@ -138,12 +136,6 @@ export const WatchPreviewCarousel: React.FC<WatchPreviewCarouselProps> = ({
 
   const currentImage = images[currentIndex] || product.thumbnail;
 
-  // Live Demo Button calculation (Strictly hidden if disabled or URL is empty)
-  const isLiveDemoExplicitlyDisabled = product.liveDemoEnabled === false;
-  const effectiveLiveDemoUrl = (product.liveDemoUrl || product.previewWebsiteUrl || '').trim();
-  const shouldRenderLiveDemoButton = showLiveDemoButton && !isLiveDemoExplicitlyDisabled && effectiveLiveDemoUrl.length > 0;
-  const liveDemoText = product.liveDemoButtonText?.trim() || 'Open Full Interactive Live Demo Website ↗';
-
   return (
     <div className="w-full space-y-4">
       {/* High-Contrast Modern Segmented Tab Switcher (ONLY shown if BOTH gallery and video are available) */}
@@ -189,14 +181,6 @@ export const WatchPreviewCarousel: React.FC<WatchPreviewCarouselProps> = ({
             <span className="whitespace-nowrap">Watch Video Demo</span>
           </button>
         </div>
-      )}
-
-      {/* Top Media Ad Slot (Cleanly placed directly above the Media Player / Carousel, below tab buttons) */}
-      {product?.enableMediaAd !== false && (
-        <AdSlotRenderer 
-          slotKey="previewMediaTop" 
-          className="w-full max-w-[728px] mx-auto my-3"
-        />
       )}
 
       {/* Main View: Gallery Slider with Touch Swipe & Click-to-Zoom */}
@@ -324,21 +308,6 @@ export const WatchPreviewCarousel: React.FC<WatchPreviewCarouselProps> = ({
             previewPlayers={product.previewPlayers}
             videoUrl={product.previewVideoUrl || product.demoUrl}
           />
-        </div>
-      )}
-
-      {/* External Live Demo Website Button (Strictly hidden if disabled or URL is blank) */}
-      {shouldRenderLiveDemoButton && (
-        <div className="w-full pt-1">
-          <a
-            href={effectiveLiveDemoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-sm sm:text-base tracking-wide shadow-lg shadow-teal-900/20 active:scale-98 transition cursor-pointer"
-          >
-            <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-            <span className="truncate">{liveDemoText}</span>
-          </a>
         </div>
       )}
 

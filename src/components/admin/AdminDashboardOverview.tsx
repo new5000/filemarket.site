@@ -42,18 +42,19 @@ import {
   RotateCw,
   Download,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Megaphone
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { Product } from '../../types';
-import { AdminOrder, updateOrderStatus, fetchAllProducts } from '../../lib/adminServices';
+import { AdminOrder, updateOrderStatus, fetchAllProducts, saveGlobalConfig } from '../../lib/adminServices';
 import { deleteStorageFile } from '../../lib/storageService';
 
 interface AdminDashboardOverviewProps {
   products?: Product[];
   orders?: AdminOrder[];
   users?: any[];
-  onNavigateTab?: (tab: 'products' | 'orders' | 'users' | 'settings') => void;
+  onNavigateTab?: (tab: 'products' | 'orders' | 'users' | 'settings' | 'ads' | any) => void;
   onOpenAddProduct?: () => void;
   onRefresh?: () => void;
 }
@@ -1193,6 +1194,18 @@ export default function AdminDashboardOverview({
                 <div className="bg-white w-4 h-4 rounded-full shadow-md"></div>
               </button>
             </div>
+
+            {/* Quick Link to Full Ads Manager */}
+            {onNavigateTab && (
+              <button
+                type="button"
+                onClick={() => onNavigateTab('ads')}
+                className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-600 dark:text-slate-300 text-[11px] font-bold transition flex items-center justify-center gap-1.5 border border-slate-200/80 dark:border-slate-800 cursor-pointer"
+              >
+                <Megaphone className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Manage All Banners & Links in Ads Manager ↗</span>
+              </button>
+            )}
 
             {/* Broadcast Announcement Bar Input */}
             <div className="space-y-2 pt-1">

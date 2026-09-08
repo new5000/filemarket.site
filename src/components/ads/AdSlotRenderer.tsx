@@ -98,7 +98,8 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
       currentAds.footerAbsoluteBottom = disabledSlot;
     }
 
-    setDismissed(true);
+    // Do not set dismissed so admin can immediately see the OFF status bar and easily turn it back ON
+    setDismissed(false);
 
     try {
       await saveGlobalConfig({
@@ -163,31 +164,53 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
 
     if (slotKey === 'footerTopBanner' || slotKey === 'preFooterBanner' || slotKey === 'footerSponsored') {
       const candidate = ads.footerTopBanner || ads.preFooterBanner || ads.footerSponsored;
-      if (ads.footerTopBanner?.enabled === false || ads.preFooterBanner?.enabled === false) {
-        return { ...(candidate || {}), enabled: false };
+      let isEnabled = true;
+      if (ads.footerTopBanner?.enabled !== undefined) {
+        isEnabled = Boolean(ads.footerTopBanner.enabled);
+      } else if (ads.preFooterBanner?.enabled !== undefined) {
+        isEnabled = Boolean(ads.preFooterBanner.enabled);
+      } else if (candidate?.enabled !== undefined) {
+        isEnabled = Boolean(candidate.enabled);
       }
-      return candidate;
+      return { ...(candidate || {}), enabled: isEnabled };
     }
     if (slotKey === 'footerBottomBanner' || slotKey === 'footerAbsoluteBottom') {
       const candidate = ads.footerBottomBanner || ads.footerAbsoluteBottom;
-      if (ads.footerBottomBanner?.enabled === false || ads.footerAbsoluteBottom?.enabled === false) {
-        return { ...(candidate || {}), enabled: false };
+      let isEnabled = true;
+      if (ads.footerBottomBanner?.enabled !== undefined) {
+        isEnabled = Boolean(ads.footerBottomBanner.enabled);
+      } else if (ads.footerAbsoluteBottom?.enabled !== undefined) {
+        isEnabled = Boolean(ads.footerAbsoluteBottom.enabled);
+      } else if (candidate?.enabled !== undefined) {
+        isEnabled = Boolean(candidate.enabled);
       }
-      return candidate;
+      return { ...(candidate || {}), enabled: isEnabled };
     }
     if (slotKey === 'previewMediaTop' || slotKey === 'previewPageTop' || slotKey === 'previewTopAd') {
       const candidate = ads.previewMediaTop || ads.previewPageTop || ads.previewTopAd;
-      if (ads.previewMediaTop?.enabled === false || ads.previewPageTop?.enabled === false) {
-        return { ...(candidate || {}), enabled: false };
+      let isEnabled = true;
+      if (ads.previewMediaTop?.enabled !== undefined) {
+        isEnabled = Boolean(ads.previewMediaTop.enabled);
+      } else if (ads.previewPageTop?.enabled !== undefined) {
+        isEnabled = Boolean(ads.previewPageTop.enabled);
+      } else if (ads.previewTopAd?.enabled !== undefined) {
+        isEnabled = Boolean(ads.previewTopAd.enabled);
+      } else if (candidate?.enabled !== undefined) {
+        isEnabled = Boolean(candidate.enabled);
       }
-      return candidate;
+      return { ...(candidate || {}), enabled: isEnabled };
     }
     if (slotKey === 'previewMediaBottom' || slotKey === 'previewPageBottom' || slotKey === 'previewBottomAd') {
       const candidate = ads.previewMediaBottom || ads.previewPageBottom || ads.previewBottomAd;
-      if (ads.previewMediaBottom?.enabled === false || ads.previewPageBottom?.enabled === false) {
-        return { ...(candidate || {}), enabled: false };
+      let isEnabled = true;
+      if (ads.previewMediaBottom?.enabled !== undefined) {
+        isEnabled = Boolean(ads.previewMediaBottom.enabled);
+      } else if (ads.previewPageBottom?.enabled !== undefined) {
+        isEnabled = Boolean(ads.previewPageBottom.enabled);
+      } else if (candidate?.enabled !== undefined) {
+        isEnabled = Boolean(candidate.enabled);
       }
-      return candidate;
+      return { ...(candidate || {}), enabled: isEnabled };
     }
     if (slotKey === 'homeTopBanner') {
       return ads.homeTopBanner || ads.headerBanner;
@@ -231,20 +254,31 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
   if (!globalAdsEnabled || !slot || !slot.enabled || dismissed) {
     if (isAdmin && slotKey && !dismissed) {
       return (
-        <div className={`w-full max-w-[728px] mx-auto my-2 py-2 px-3.5 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-2 text-xs select-none transition-all ${className}`}>
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[11px] font-medium">
-            <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-            <span>Ad Slot (<strong>{slotKey}</strong>): <span className="text-slate-600 dark:text-slate-300 font-bold uppercase">OFF</span></span>
+        <div className={`w-full max-w-[728px] mx-auto my-2 py-2 px-3.5 rounded-2xl border border-dashed border-amber-300 dark:border-amber-700/60 bg-amber-50/60 dark:bg-amber-950/20 flex flex-wrap items-center justify-between gap-2 text-xs select-none transition-all ${className}`}>
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+            <span>Ad Slot (<strong>{slotKey}</strong>): <span className="text-rose-500 font-bold uppercase">OFF</span></span>
+            <span className="hidden sm:inline text-slate-400 text-[10px]">| সাধারণ ভিজিটরদের কাছে এটি লুকানো আছে</span>
           </div>
-          <button
-            type="button"
-            onClick={handleAdminTurnOn}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition shadow-sm cursor-pointer"
-            title="Admin Quick Control: Turn this ad ON"
-          >
-            <Power className="w-3.5 h-3.5" />
-            <span>Turn ON Ad (Admin)</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleAdminTurnOn}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition shadow-sm cursor-pointer active:scale-95"
+              title="Admin Quick Control: Turn this ad ON"
+            >
+              <Power className="w-3.5 h-3.5" />
+              <span>Turn ON Ad (Admin)</span>
+            </button>
+            <a
+              href="/admin?tab=ads"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer"
+              title="Open Ads Manager in Admin Panel"
+            >
+              <ExternalLink className="w-3 h-3" />
+              <span>Admin Panel</span>
+            </a>
+          </div>
         </div>
       );
     }
@@ -439,15 +473,25 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
 
         <div className="flex items-center gap-2">
           {isAdmin && slotKey && (
-            <button
-              type="button"
-              onClick={handleAdminTurnOff}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 hover:bg-rose-500 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/20 text-[9px] font-bold tracking-normal transition-colors cursor-pointer"
-              title="Admin Quick Control: Turn off this ad immediately"
-            >
-              <PowerOff className="w-2.5 h-2.5" />
-              <span>Turn OFF Ad (Admin)</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleAdminTurnOff}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-500/10 hover:bg-rose-500 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/20 text-[9px] font-bold tracking-normal transition-colors cursor-pointer"
+                title="Admin Quick Control: Turn off this ad immediately"
+              >
+                <PowerOff className="w-2.5 h-2.5" />
+                <span>Turn OFF Ad (Admin)</span>
+              </button>
+              <a
+                href="/admin?tab=ads"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[9px] font-bold tracking-normal transition cursor-pointer"
+                title="Open Ads Manager in Admin Panel"
+              >
+                <ExternalLink className="w-2.5 h-2.5" />
+                <span>Admin</span>
+              </a>
+            </>
           )}
 
           {onDismiss && (

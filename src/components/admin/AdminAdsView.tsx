@@ -521,8 +521,8 @@ export const AdminAdsView: React.FC<AdminAdsViewProps> = ({ onRefresh }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {renderCard(
           'previewMediaTop', 
-          '🎬 Media Carousel Top Ad', 
-          'প্রোডাক্ট প্রিভিউ/ভিডিওর উপরের বিজ্ঞাপন',
+          '🎬 Watch Preview Top Banner (ওয়াচ প্রিভিউ বিজ্ঞাপন)', 
+          'ওয়াচ প্রিভিউ ও ভিডিও পেজের উপরের প্রধান বিজ্ঞাপন ব্যানার',
           Tv, 
           [
             { value: 'responsive', label: 'Responsive Auto' },

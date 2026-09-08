@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, CheckCircle2, ShieldCheck, Download, HardDrive, FileCode, Calendar, Clock, Zap, Check, Sparkles, Share2, Heart, ShoppingBag, Package, Truck, MessageCircle } from 'lucide-react';
+import { Star, CheckCircle2, ShieldCheck, Download, HardDrive, FileCode, Calendar, Clock, Zap, Check, Sparkles, Share2, Heart, ShoppingBag, Package, Truck } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Product, Currency } from '../types';
 import { useProducts } from '../context/ProductContext';
@@ -662,28 +662,6 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* WhatsApp Direct Order Button for Digital Services */}
-            {(isService || product.whatsappOrderEnabled) && (
-              <div className="mt-5 mb-3">
-                <a
-                  href={(() => {
-                    const phone = (product.whatsappNumber || (generalConfig as any)?.whatsappNumber || '8801673833783').replace(/[^0-9]/g, '');
-                    const defaultMsg = `🚀 *New Digital Service Order / Inquiry - FileMarket*\n━━━━━━━━━━━━━━━━━━━━\n📌 *Service:* ${product.title}\n💰 *Price:* ৳${(product.priceBDT || 0).toLocaleString('en-BD')} BDT\n⚡ *Delivery:* ${product.deliveryTime || '24-48 Hours'}\n\nHello Joy / FileMarket, I want to discuss and order this service. Please let me know how to proceed.`;
-                    const text = encodeURIComponent(product.whatsappMessage || defaultMsg);
-                    return `https://wa.me/${phone}?text=${text}`;
-                  })()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-950/25 border border-emerald-400/40 active:scale-98 transition-all duration-200 cursor-pointer select-none"
-                >
-                  <MessageCircle className="w-4 h-4 fill-current shrink-0" />
-                  <span className="tracking-wide">
-                    {product.whatsappButtonText || 'Order on WhatsApp (সরাসরি হোয়াটসঅ্যাপে অর্ডার)'}
-                  </span>
-                </a>
               </div>
             )}
 
