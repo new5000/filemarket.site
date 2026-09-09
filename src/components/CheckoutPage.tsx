@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { formatDirectImageUrl } from '../utils/formatImageUrl';
 import { 
   Copy, 
@@ -143,8 +143,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
-  const localScrollVisible = useScrollDirection();
-  const isNavVisible = isHeaderVisible && localScrollVisible;
+  // Maintain rock-solid navbar stability on CheckoutPage to prevent vertical twitching during micro-scrolls
+  const isNavVisible = isHeaderVisible;
 
   // Fetch product from Firestore if not directly provided via props
   useEffect(() => {
@@ -311,21 +311,50 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  // Set default selected gateway when payment settings load
+  // Track gateway initialization to prevent infinite loop or user selection overwrite on background sync
+  const hasInitializedGateway = useRef(false);
+
+  // Set default selected gateway when payment settings load (runs only once or if current selection is invalid)
   useEffect(() => {
-    // If stripe is enabled, keep stripe. Otherwise pick first enabled gateway
+    if (hasInitializedGateway.current) {
+      return;
+    }
+
+    // Smart default: If user's currency is BDT, prioritize instant BD gateways (bKash, shurjopay, nagad)
+    if (currency === 'BDT') {
+      if (paymentSettings.bkash?.enabled) {
+        setSelectedGateway('bkash');
+        hasInitializedGateway.current = true;
+        return;
+      } else if (paymentSettings.shurjopay?.enabled) {
+        setSelectedGateway('shurjopay');
+        hasInitializedGateway.current = true;
+        return;
+      } else if (paymentSettings.nagad?.enabled) {
+        setSelectedGateway('nagad');
+        hasInitializedGateway.current = true;
+        return;
+      }
+    }
+
+    // Default global gateway selection
     if (paymentSettings.stripe?.enabled) {
       setSelectedGateway('stripe');
+      hasInitializedGateway.current = true;
     } else if (paymentSettings.bkash?.enabled) {
       setSelectedGateway('bkash');
+      hasInitializedGateway.current = true;
     } else if (paymentSettings.paypal?.enabled) {
       setSelectedGateway('paypal');
+      hasInitializedGateway.current = true;
     } else if (paymentSettings.nagad?.enabled) {
       setSelectedGateway('nagad');
+      hasInitializedGateway.current = true;
     } else if (paymentSettings.binance?.enabled) {
       setSelectedGateway('binance');
+      hasInitializedGateway.current = true;
     }
-  }, [paymentSettings]);
+  }, [paymentSettings, currency]);
 
   // Pricing calculations
   const unitPriceBDT = activeProduct?.priceBDT || 0;
@@ -968,7 +997,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/30 space-y-3 animate-in fade-in duration-200">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-4 h-4 animate-pulse" />
+                <AlertCircle className="w-4 h-4" />
               </div>
               <div className="flex-1 space-y-1">
                 <h3 className="font-heading font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-2">
@@ -1146,10 +1175,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('stripe')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'stripe'
-                      ? 'border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shadow-sm ring-2 ring-indigo-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-indigo-500/30'
+                      ? 'border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="stripe" customLogo={paymentSettings.stripe?.customLogo} className="w-12 h-6" />
@@ -1162,10 +1191,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('paypal')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'paypal'
-                      ? 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
+                      ? 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="paypal" customLogo={paymentSettings.paypal?.customLogo} className="w-12 h-6" />
@@ -1178,10 +1207,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('shurjopay')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'shurjopay'
-                      ? 'border-orange-500 bg-orange-500/15 text-orange-700 dark:text-orange-300 shadow-sm ring-2 ring-orange-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-orange-500/30'
+                      ? 'border-orange-500 bg-orange-500/15 text-orange-700 dark:text-orange-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="shurjopay" customLogo={paymentSettings.shurjopay?.customLogo} className="h-6 px-1.5" />
@@ -1194,10 +1223,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('sslcommerz')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'sslcommerz'
-                      ? 'border-red-500 bg-red-500/15 text-red-700 dark:text-red-300 shadow-sm ring-2 ring-red-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-red-500/30'
+                      ? 'border-red-500 bg-red-500/15 text-red-700 dark:text-red-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="sslcommerz" customLogo={paymentSettings.sslcommerz?.customLogo} className="h-6 px-1.5" />
@@ -1210,10 +1239,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('aamarpay')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'aamarpay'
-                      ? 'border-cyan-500 bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-sm ring-2 ring-cyan-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-cyan-500/30'
+                      ? 'border-cyan-500 bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="aamarpay" customLogo={paymentSettings.aamarpay?.customLogo} className="h-6 px-1.5" />
@@ -1226,10 +1255,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('razorpay')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'razorpay'
-                      ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-600/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-600/30'
+                      ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="razorpay" customLogo={paymentSettings.razorpay?.customLogo} className="h-6 px-1.5" />
@@ -1242,10 +1271,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('coinbase')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'coinbase'
-                      ? 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
+                      ? 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="coinbase" customLogo={paymentSettings.coinbase?.customLogo} className="h-6 px-1 text-[10px]" />
@@ -1258,10 +1287,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('paystack')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'paystack'
-                      ? 'border-sky-500 bg-sky-500/15 text-sky-700 dark:text-sky-300 shadow-sm ring-2 ring-sky-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-sky-500/30'
+                      ? 'border-sky-500 bg-sky-500/15 text-sky-700 dark:text-sky-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="paystack" customLogo={paymentSettings.paystack?.customLogo} className="h-6 px-2 text-[10px]" />
@@ -1274,10 +1303,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('flutterwave')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'flutterwave'
-                      ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-sm ring-2 ring-amber-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-amber-500/30'
+                      ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="flutterwave" customLogo={paymentSettings.flutterwave?.customLogo} className="h-6 px-2 text-[10px]" />
@@ -1290,10 +1319,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('mollie')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'mollie'
-                      ? 'border-slate-700 bg-slate-700/15 text-slate-900 dark:text-white shadow-sm ring-2 ring-slate-700/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-500/30'
+                      ? 'border-slate-700 bg-slate-700/15 text-slate-900 dark:text-white shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="mollie" customLogo={paymentSettings.mollie?.customLogo} className="h-6 px-2 text-[10px]" />
@@ -1306,10 +1335,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('bkash')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'bkash'
-                      ? 'border-pink-500 bg-pink-500/15 text-pink-700 dark:text-pink-300 shadow-sm ring-2 ring-pink-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-pink-500/30'
+                      ? 'border-[#E2136E] bg-[#E2136E]/15 text-[#E2136E] shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="bkash" customLogo={paymentSettings.bkash?.customLogo} className="w-7 h-7" />
@@ -1322,10 +1351,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('nagad')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'nagad'
-                      ? 'border-orange-500 bg-orange-500/15 text-orange-700 dark:text-orange-300 shadow-sm ring-2 ring-orange-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-orange-500/30'
+                      ? 'border-[#F7931E] bg-[#F7931E]/15 text-[#F7931E] shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="nagad" customLogo={paymentSettings.nagad?.customLogo} className="h-6 px-1 text-[10px]" />
@@ -1338,10 +1367,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('rocket')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'rocket'
-                      ? 'border-purple-500 bg-purple-500/15 text-purple-700 dark:text-purple-300 shadow-sm ring-2 ring-purple-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-purple-500/30'
+                      ? 'border-[#8C3494] bg-[#8C3494]/15 text-[#8C3494] shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="rocket" customLogo={paymentSettings.rocket?.customLogo} className="h-6 px-1 text-[10px]" />
@@ -1354,10 +1383,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('upay')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'upay'
-                      ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-sm ring-2 ring-blue-600/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-blue-500/30'
+                      ? 'border-blue-600 bg-blue-600/15 text-blue-700 dark:text-blue-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="upay" customLogo={paymentSettings.upay?.customLogo} className="h-6 px-1 text-[10px]" />
@@ -1370,10 +1399,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('binance')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'binance'
-                      ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-sm ring-2 ring-amber-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-amber-500/30'
+                      ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="binance" customLogo={paymentSettings.binance?.customLogo} className="h-6 px-1 text-[10px]" />
@@ -1386,10 +1415,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedGateway('bankTransfer')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === 'bankTransfer'
-                      ? 'border-slate-600 bg-slate-600/15 text-slate-900 dark:text-white shadow-sm ring-2 ring-slate-600/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-500/30'
+                      ? 'border-slate-600 bg-slate-600/15 text-slate-900 dark:text-white shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="bank" customLogo={paymentSettings.bankTransfer?.customLogo} className="h-6 px-1 text-[10px]" />
@@ -1403,10 +1432,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   key={customGw.id}
                   type="button"
                   onClick={() => setSelectedGateway(customGw.id)}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 h-[80px] rounded-2xl border-2 text-xs font-bold transition-colors duration-150 cursor-pointer select-none box-border transform-none ${
                     selectedGateway === customGw.id
-                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-sm ring-2 ring-emerald-500/40 scale-[1.02]'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-emerald-500/30'
+                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId={customGw.id} customLogo={customGw.iconUrl} name={customGw.name} className="w-6 h-6 rounded" />
@@ -1418,7 +1447,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             {/* DYNAMIC FORM RENDERING BASED ON GATEWAY TYPE */}
             <form onSubmit={handleProcessOrder} className="space-y-4 pt-2">
               
-              {/* --- 1. STRIPE CARD FORM --- */}
+              {/* Stable container to reserve height and eliminate Cumulative Layout Shift (CLS) when toggling gateways */}
+              <div className="min-h-[440px] flex flex-col justify-start">
+                {/* --- 1. STRIPE CARD FORM --- */}
               {selectedGateway === 'stripe' && (
                 <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/60 space-y-3">
                   <div className="flex items-center justify-between">
@@ -1715,27 +1746,27 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
                           {currentManualGateway.name} ({currentManualGateway.accountType})
                         </h4>
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-0.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5 mt-0.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                           সরাসরি ইনস্ট্যান্ট ভেরিফিকেশন এক্টিভ
                         </span>
                       </div>
                     </div>
 
-                    {/* Exact Amount Tag */}
-                    <div className="text-right">
+                    {/* Exact Amount Tag (Locked height to prevent layout shift between currencies) */}
+                    <div className="text-right min-w-[120px] min-h-[42px] flex flex-col justify-center items-end">
                       <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">পাঠানোর পরিমাণ:</span>
                       {selectedGateway === 'binance' ? (
-                        <div>
-                          <span className="text-sm sm:text-base font-black text-amber-500 dark:text-amber-400">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-sm sm:text-base font-black text-amber-500 dark:text-amber-400 font-mono">
                             {usdtAmount} USDT
                           </span>
-                          <span className="block text-[10px] font-bold text-slate-400">
-                            (৳{checkoutState.total} BDT)
+                          <span className="text-[10px] font-bold text-slate-400">
+                            (৳{checkoutState.total})
                           </span>
                         </div>
                       ) : (
-                        <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
+                        <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
                           ৳{checkoutState.total} BDT
                         </span>
                       )}
@@ -1850,6 +1881,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   </div>
                 </div>
               )}
+              </div>
 
               {/* LOADER OVERLAY WHILE PROCESSING */}
               {isProcessing && (
@@ -1866,9 +1898,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.98] text-white font-black text-sm sm:text-base rounded-2xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+                  className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm sm:text-base rounded-2xl shadow-lg shadow-emerald-500/25 transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
                 >
-                  <Sparkles className="w-4 h-4 animate-pulse" />
+                  <Sparkles className="w-4 h-4 text-amber-300" />
                   <span>
                     {isAutomatedGateway
                       ? `⚡ Pay ${formatCurrencyAmount(convertedGatewayAmount, gatewayCurrency)} & Instant Access`

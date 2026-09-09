@@ -669,7 +669,7 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 mb-6 sm:mt-4 sm:mb-7">
               {/* Premium Crimson Red Buy Button with Soft Red Ambient Glow */}
               <div className="relative group w-full flex items-center justify-center">
-                <div className="absolute -inset-1 bg-gradient-to-r from-red-500 via-rose-500 to-red-500 rounded-2xl opacity-60 blur-md group-hover:opacity-100 group-hover:blur-lg animate-pulse transition-all duration-500 pointer-events-none" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-red-500 via-rose-500 to-red-500 rounded-2xl opacity-60 blur-md group-hover:opacity-100 group-hover:blur-lg transition-opacity duration-300 pointer-events-none" />
 
                 <button
                   type="button"
@@ -738,8 +738,7 @@ export const ProductDetailModal: React.FC<ProductDetailPageProps> = ({
           <div className="relative overflow-hidden rounded-2xl p-4 sm:p-5 my-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 text-slate-800 dark:text-slate-200 shadow-sm group">
             <div className="absolute inset-0 w-[200%] -translate-x-full animate-[lightSweep_3s_linear_infinite] bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent pointer-events-none skew-x-12" />
             <div className="relative flex items-start sm:items-center gap-4">
-              <div className="relative flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-emerald-500/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400">
-                <div className="absolute inset-0 rounded-xl bg-emerald-500/10 animate-pulse" />
+              <div className="relative flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-emerald-500/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 bg-emerald-500/10">
                 <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
               </div>
               <div className="flex-1 min-w-0">

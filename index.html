@@ -56,6 +56,41 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
 
+    <!-- AdCash aclib Safe Initializer & Polyfill to prevent "aclib is not defined" crashes -->
+    <script type="text/javascript">
+      (function() {
+        if (typeof window.aclib === 'undefined') {
+          var queue = [];
+          var stubFn = function() {
+            var args = Array.prototype.slice.call(arguments);
+            queue.push(args);
+          };
+          window.aclib = new Proxy({
+            runAutoTag: stubFn,
+            runPop: stubFn,
+            runBanner: stubFn,
+            runInPagePush: stubFn,
+            init: stubFn,
+            _queue: queue
+          }, {
+            get: function(target, prop) {
+              if (prop in target) return target[prop];
+              return stubFn;
+            }
+          });
+        }
+        // Safety listener to catch any unhandled ad script ReferenceErrors
+        window.addEventListener('error', function(event) {
+          if (event && event.message && event.message.indexOf('aclib is not defined') !== -1) {
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+          }
+        }, true);
+      })();
+    </script>
+    <script id="aclib-cdn" type="text/javascript" src="//acscdn.com/script/aclib.js" async crossorigin="anonymous"></script>
+
     <!-- GitHub Pages SPA Redirect Recovery -->
     <script type="text/javascript">
       (function(l) {

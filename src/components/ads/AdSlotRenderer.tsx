@@ -237,16 +237,45 @@ export const AdSlotRenderer: React.FC<AdSlotRendererProps> = ({
     const container = htmlContainerRef.current;
     container.innerHTML = slot.code;
 
-    // Execute any script tags dynamically
+    // Execute any script tags dynamically with safe execution guards
     const scripts = container.querySelectorAll('script');
     scripts.forEach((oldScript: HTMLScriptElement) => {
-      const newScript = document.createElement('script');
-      Array.from(oldScript.attributes).forEach((attr: Attr) => {
-        newScript.setAttribute(attr.name, attr.value);
-      });
-      newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-      if (oldScript.parentNode) {
-        oldScript.parentNode.replaceChild(newScript, oldScript);
+      try {
+        const newScript = document.createElement('script');
+        Array.from(oldScript.attributes).forEach((attr: Attr) => {
+          newScript.setAttribute(attr.name, attr.value);
+        });
+
+        // Ensure window.aclib exists before running AdCash scripts
+        if (oldScript.innerHTML.includes('aclib') && !(window as any).aclib) {
+          const stub = () => {};
+          (window as any).aclib = new Proxy({
+            runAutoTag: stub,
+            runPop: stub,
+            runBanner: stub,
+            runInPagePush: stub,
+            init: stub
+          }, {
+            get: (target: any, prop: string) => target[prop] || stub
+          });
+        }
+
+        if (oldScript.src) {
+          newScript.src = oldScript.src;
+          newScript.async = true;
+          newScript.onerror = () => {
+            console.warn(`[AdSlotRenderer] Ad script failed to load: ${oldScript.src}`);
+          };
+        } else if (oldScript.innerHTML) {
+          // Wrap inline scripts in a try-catch so third-party runtime errors never crash the host app
+          newScript.text = `try { ${oldScript.innerHTML} } catch (err) { console.warn("[AdSlotRenderer] Safe ad execution:", err); }`;
+        }
+
+        if (oldScript.parentNode) {
+          oldScript.parentNode.replaceChild(newScript, oldScript);
+        }
+      } catch (err) {
+        console.warn('[AdSlotRenderer] Dynamic script injection handled:', err);
       }
     });
   }, [slot?.code, slot?.enabled, slot?.type]);
