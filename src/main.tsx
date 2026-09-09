@@ -5,7 +5,10 @@ import './index.css';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
+    navigator.serviceWorker.register('/sw.js').then((registration) => {
+      // Force immediate update check on every page visit to prevent stale code caching
+      registration.update().catch(() => {});
+    }).catch((err) => {
       console.log('ServiceWorker registration failed: ', err);
     });
   });

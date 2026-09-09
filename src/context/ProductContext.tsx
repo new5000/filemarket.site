@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs, getDocsFromServer } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth, handleFirestoreError, prepareProductPayloadForFirestore, OperationType } from '../lib/firebase';
 import { Product } from '../types';
@@ -18,59 +18,63 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Active Real-Time Listener strictly on Firestore 'products'
+  // Active Real-Time Listener strictly on Firestore 'products' with zero local storage cache poisoning
   useEffect(() => {
     let unsubProducts: (() => void) | null = null;
+    let isMounted = true;
 
-    const setupListener = (isAdmin: boolean) => {
+    // Purge legacy product caches across all devices to prevent stale data resurrection
+    try {
+      localStorage.removeItem('fm_custom_products');
+      localStorage.removeItem('fm_products');
+      localStorage.removeItem('fm_deleted_product_ids');
+    } catch {}
+
+    const setupListener = async (isAdmin: boolean) => {
       if (unsubProducts) unsubProducts();
+
+      const parseDocData = (docSnap: any): Product => {
+        const data = docSnap.data();
+        if (isAdmin) {
+          return { id: docSnap.id, ...data } as Product;
+        } else {
+          // Bank-Grade Security: Strictly isolate private download URLs from public storefront payloads
+          const { downloadUrl, instantDownloadLink, driveUrl, driveLink, cloudDriveUrl, cloudAccessLink, ...publicData } = data;
+          return { id: docSnap.id, ...publicData } as Product;
+        }
+      };
+
+      // 1. Immediate fresh direct-from-server query to avoid waiting for WebSocket/snapshot handshake
+      try {
+        const serverSnap = await getDocsFromServer(collection(db, 'products'));
+        if (isMounted && serverSnap && !serverSnap.empty) {
+          const freshList = serverSnap.docs.map(parseDocData);
+          setProducts(freshList);
+          setLoading(false);
+        }
+      } catch (serverErr) {
+        try {
+          const fallbackSnap = await getDocs(collection(db, 'products'));
+          if (isMounted && fallbackSnap && !fallbackSnap.empty) {
+            setProducts(fallbackSnap.docs.map(parseDocData));
+            setLoading(false);
+          }
+        } catch {}
+      }
+
+      // 2. Real-time active listener with metadata changes so newly published products show up on all devices instantly
       unsubProducts = onSnapshot(
         collection(db, 'products'),
+        { includeMetadataChanges: true },
         (snapshot) => {
-          const firestoreList = snapshot.docs.map(
-            (d) => {
-              const data = d.data();
-              if (isAdmin) {
-                return { id: d.id, ...data } as Product;
-              } else {
-                // Bank-Grade Security: Strictly isolate private download URLs from public payloads
-                const { downloadUrl, instantDownloadLink, driveUrl, driveLink, cloudDriveUrl, cloudAccessLink, ...publicData } = data;
-                return { id: d.id, ...publicData } as Product;
-              }
-            }
-          );
-          // Merge Firestore list with local cached products to guarantee immediate resilience
-          let mergedList = [...firestoreList];
-          try {
-            const localStr = localStorage.getItem('fm_custom_products');
-            if (localStr) {
-              const localList: Product[] = JSON.parse(localStr);
-              localList.forEach((localProd) => {
-                const idx = mergedList.findIndex((p) => String(p.id) === String(localProd.id));
-                if (idx >= 0) {
-                  mergedList[idx] = { ...mergedList[idx], ...localProd };
-                } else {
-                  mergedList.unshift(localProd);
-                }
-              });
-            }
-          } catch {}
-
-          // Filter out deleted product IDs
-          try {
-            const deletedStr = localStorage.getItem('fm_deleted_product_ids') || '[]';
-            const deletedIds: string[] = JSON.parse(deletedStr);
-            if (deletedIds.length > 0) {
-              mergedList = mergedList.filter((p) => !deletedIds.includes(String(p.id)));
-            }
-          } catch {}
-
-          setProducts(mergedList);
+          if (!isMounted) return;
+          const firestoreList = snapshot.docs.map(parseDocData);
+          setProducts(firestoreList);
           setLoading(false);
         },
         (error) => {
           console.warn('Realtime products listener error:', error);
-          setLoading(false);
+          if (isMounted) setLoading(false);
         }
       );
     };
@@ -83,12 +87,13 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     return () => {
+      isMounted = false;
       unsubAuth();
       if (unsubProducts) unsubProducts();
     };
   }, []);
 
-  // Listen for local real-time product updates from Admin panel
+  // Listen for local real-time product updates from Admin panel (within same browser window)
   useEffect(() => {
     const handleProductUpdated = (e: any) => {
       const updatedProduct = e.detail as Product;
@@ -124,25 +129,12 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return [product, ...prev];
     });
 
-    // 2. Persist to local storage cache immediately
-    try {
-      const localStr = localStorage.getItem('fm_custom_products');
-      let localList: Product[] = localStr ? JSON.parse(localStr) : [];
-      const idx = localList.findIndex(p => String(p.id) === strId);
-      if (idx >= 0) {
-        localList[idx] = product;
-      } else {
-        localList.unshift(product);
-      }
-      localStorage.setItem('fm_custom_products', JSON.stringify(localList));
-    } catch {}
-
-    // 3. Broadcast to all listeners
+    // 2. Broadcast to local tab listeners
     try {
       window.dispatchEvent(new CustomEvent('fm_products_updated', { detail: product }));
     } catch {}
 
-    // 4. Save to Firestore
+    // 3. Save directly to Firestore; onSnapshot real-time listener will broadcast to all other open devices instantly
     try {
       await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
     } catch (error) {

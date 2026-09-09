@@ -22,10 +22,12 @@ import {
 import { 
   getFirestore,
   initializeFirestore, 
+  memoryLocalCache,
   doc, 
   setDoc, 
   getDoc, 
   getDocFromServer,
+  getDocsFromServer,
   updateDoc,
   deleteDoc,
   writeBatch,
@@ -71,12 +73,14 @@ export const auth = authInstance;
 let firestoreDb;
 try {
   firestoreDb = initializeFirestore(app, { 
+    localCache: memoryLocalCache(),
     experimentalAutoDetectLongPolling: true 
   }, firebaseConfig.firestoreDatabaseId);
 } catch (error: any) {
   firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 }
 export const db = firestoreDb;
+export { getDocsFromServer, memoryLocalCache };
 
 // Silence non-fatal offline retry warnings in iframe/sandboxed environments
 setLogLevel('silent');

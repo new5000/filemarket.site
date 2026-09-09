@@ -2,6 +2,7 @@ import {
   collection, 
   doc, 
   getDocs, 
+  getDocsFromServer,
   getDoc, 
   setDoc, 
   updateDoc, 
@@ -197,7 +198,7 @@ export function getDeletedProductIds(): Set<string> {
 
 export function subscribeProducts(callback: (products: Product[]) => void): () => void {
   try {
-    const unsubProducts = onSnapshot(collection(db, 'products'), (snap) => {
+    const unsubProducts = onSnapshot(collection(db, 'products'), { includeMetadataChanges: true }, (snap) => {
       const firestoreProducts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
       callback(firestoreProducts);
     }, (err) => {
@@ -288,65 +289,48 @@ export function subscribeUsers(callback: (users: any[]) => void): () => void {
 
 export async function fetchAllProducts(): Promise<Product[]> {
   try {
-    const snap = await getDocs(collection(db, 'products'));
+    // Strictly fetch directly from live Firestore server to bypass any cached persistence
+    const snap = await getDocsFromServer(collection(db, 'products'));
     const firestoreProducts: Product[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
     return firestoreProducts;
   } catch (error) {
-    console.warn("Could not fetch products from Firestore:", error);
-    return [];
+    try {
+      const fallbackSnap = await getDocs(collection(db, 'products'));
+      return fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+    } catch {
+      console.warn("Could not fetch products from Firestore:", error);
+      return [];
+    }
   }
 }
 
 export async function saveAdminProduct(product: Product): Promise<void> {
   const strId = String(product.id);
   const cleanedProduct = prepareProductPayloadForFirestore(product);
-  // If product was previously marked deleted, un-delete it locally and in Firestore
-  try {
-    const deletedStr = localStorage.getItem('fm_deleted_product_ids') || '[]';
-    let deletedIds: string[] = JSON.parse(deletedStr);
-    if (deletedIds.includes(strId)) {
-      deletedIds = deletedIds.filter(id => id !== strId);
-      localStorage.setItem('fm_deleted_product_ids', JSON.stringify(deletedIds));
-    }
-  } catch {}
 
+  // If product was previously marked deleted, un-delete it in Firestore
   try {
     await deleteDoc(doc(db, 'deleted_products', strId));
   } catch {}
 
+  // Save directly to Firestore; onSnapshot pushes changes to all devices immediately
   try {
     await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
   } catch (err) {
     console.warn("Firestore save product error:", err);
   }
 
-  // Always update local cache
+  // Purge any legacy localStorage product caches so stale local data never persists
   try {
-    const localStr = localStorage.getItem('fm_custom_products');
-    let localList: Product[] = localStr ? JSON.parse(localStr) : [];
-    const idx = localList.findIndex(p => String(p.id) === strId);
-    if (idx >= 0) {
-      localList[idx] = product;
-    } else {
-      localList.unshift(product);
-    }
-    localStorage.setItem('fm_custom_products', JSON.stringify(localList));
-
-    const genStr = localStorage.getItem('fm_products');
-    let genList: any[] = genStr ? JSON.parse(genStr) : [];
-    const gIdx = genList.findIndex((p: any) => String(p.id) === strId);
-    if (gIdx >= 0) {
-      genList[gIdx] = product;
-    } else {
-      genList.unshift(product);
-    }
-    localStorage.setItem('fm_products', JSON.stringify(genList));
+    localStorage.removeItem('fm_custom_products');
+    localStorage.removeItem('fm_products');
+    localStorage.removeItem('fm_deleted_product_ids');
 
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { savedId: strId } }));
     window.dispatchEvent(new CustomEvent('fm_products_updated', { detail: product }));
   } catch (err) {
-    console.warn("Failed to update local products:", err);
+    console.warn("Failed to dispatch local product update events:", err);
   }
 }
 
@@ -370,27 +354,11 @@ export async function deleteAdminProduct(productId: string): Promise<void> {
     console.warn("Firestore deleted_products set error:", err);
   }
 
-  // 3. Track in deleted product IDs so static items don't resurrect
+  // 3. Purge legacy local caches
   try {
-    const deletedStr = localStorage.getItem('fm_deleted_product_ids') || '[]';
-    const deletedIds: string[] = JSON.parse(deletedStr);
-    if (!deletedIds.includes(strId)) {
-      deletedIds.push(strId);
-      localStorage.setItem('fm_deleted_product_ids', JSON.stringify(deletedIds));
-    }
-  } catch {}
-
-  // 4. Remove from custom local caches
-  try {
-    const localStr = localStorage.getItem('fm_custom_products');
-    let localList: Product[] = localStr ? JSON.parse(localStr) : [];
-    localList = localList.filter(p => String(p.id) !== strId);
-    localStorage.setItem('fm_custom_products', JSON.stringify(localList));
-
-    const genStr = localStorage.getItem('fm_products');
-    let genList: any[] = genStr ? JSON.parse(genStr) : [];
-    genList = genList.filter((p: any) => String(p.id) !== strId);
-    localStorage.setItem('fm_products', JSON.stringify(genList));
+    localStorage.removeItem('fm_custom_products');
+    localStorage.removeItem('fm_products');
+    localStorage.removeItem('fm_deleted_product_ids');
 
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { deletedId: strId } }));

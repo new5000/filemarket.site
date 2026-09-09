@@ -411,9 +411,11 @@ export const AdminProductsView: React.FC<AdminProductsViewProps> = ({
       // 3. Clear from Firestore and Local Admin Cache
       await deleteAdminProduct(targetId);
 
-      const cachedProducts = JSON.parse(localStorage.getItem('fm_products') || '[]');
-      const updatedCache = cachedProducts.filter((item: any) => String(item.id) !== targetId);
-      localStorage.setItem('fm_products', JSON.stringify(updatedCache));
+      try {
+        localStorage.removeItem('fm_products');
+        localStorage.removeItem('fm_custom_products');
+        localStorage.removeItem('fm_deleted_product_ids');
+      } catch {}
 
       showToast(`"${targetTitle}" deleted permanently.`);
       setProductToDelete(null);
