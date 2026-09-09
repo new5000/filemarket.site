@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth, addPurchasedProductToUser, PurchasedProductItem, cleanFirestoreData, prepareProductPayloadForFirestore } from './firebase';
 import { Product, GlobalConfig, DEFAULT_GLOBAL_CONFIG } from '../types';
+import { PRODUCTS_DATA } from '../data/products';
 
 export interface AdminOrder {
   id: string;
@@ -196,13 +197,45 @@ export function getDeletedProductIds(): Set<string> {
   }
 }
 
+export function mergeAdminProductsWithCatalog(customOrRemote: Product[]): Product[] {
+  const deletedIds = getDeletedProductIds();
+  const map = new Map<string, Product>();
+
+  // 1. First add baseline PRODUCTS_DATA (excluding any explicitly deleted items)
+  PRODUCTS_DATA.forEach((p) => {
+    const strId = String(p.id);
+    if (!deletedIds.has(strId)) {
+      map.set(strId, { ...p, id: strId });
+    }
+  });
+
+  // 2. Overlay remote Firestore / custom products on top
+  if (Array.isArray(customOrRemote)) {
+    customOrRemote.forEach((raw) => {
+      if (!raw) return;
+      const strId = String(raw.id || '');
+      if (strId && !deletedIds.has(strId)) {
+        map.set(strId, { ...raw, id: strId });
+      }
+    });
+  }
+
+  const merged = Array.from(map.values());
+  try {
+    localStorage.setItem('fm_products', JSON.stringify(merged));
+  } catch {}
+  return merged;
+}
+
 export function subscribeProducts(callback: (products: Product[]) => void): () => void {
   try {
     const unsubProducts = onSnapshot(collection(db, 'products'), { includeMetadataChanges: true }, (snap) => {
       const firestoreProducts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
-      callback(firestoreProducts);
+      const merged = mergeAdminProductsWithCatalog(firestoreProducts);
+      callback(merged);
     }, (err) => {
-      console.warn("Products snapshot error:", err);
+      console.warn("Products snapshot error (using catalog fallback):", err);
+      callback(mergeAdminProductsWithCatalog([]));
     });
     return unsubProducts;
   } catch (e) {
@@ -289,17 +322,18 @@ export function subscribeUsers(callback: (users: any[]) => void): () => void {
 
 export async function fetchAllProducts(): Promise<Product[]> {
   try {
-    // Strictly fetch directly from live Firestore server to bypass any cached persistence
+    // Attempt live Firestore server fetch
     const snap = await getDocsFromServer(collection(db, 'products'));
     const firestoreProducts: Product[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
-    return firestoreProducts;
+    return mergeAdminProductsWithCatalog(firestoreProducts);
   } catch (error) {
     try {
       const fallbackSnap = await getDocs(collection(db, 'products'));
-      return fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+      const fallbackProducts: Product[] = fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+      return mergeAdminProductsWithCatalog(fallbackProducts);
     } catch {
-      console.warn("Could not fetch products from Firestore:", error);
-      return [];
+      console.warn("Could not fetch products from Firestore, serving verified catalog:", error);
+      return mergeAdminProductsWithCatalog([]);
     }
   }
 }
@@ -308,7 +342,15 @@ export async function saveAdminProduct(product: Product): Promise<void> {
   const strId = String(product.id);
   const cleanedProduct = prepareProductPayloadForFirestore(product);
 
-  // If product was previously marked deleted, un-delete it in Firestore
+  // If product was previously marked deleted, un-delete it
+  try {
+    const deletedIds = getDeletedProductIds();
+    if (deletedIds.has(strId)) {
+      deletedIds.delete(strId);
+      localStorage.setItem('fm_deleted_product_ids', JSON.stringify(Array.from(deletedIds)));
+    }
+  } catch {}
+
   try {
     await deleteDoc(doc(db, 'deleted_products', strId));
   } catch {}
@@ -317,34 +359,52 @@ export async function saveAdminProduct(product: Product): Promise<void> {
   try {
     await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
   } catch (err) {
-    console.warn("Firestore save product error:", err);
+    console.warn("Firestore save product error (persisting locally):", err);
   }
 
-  // Purge any legacy localStorage product caches so stale local data never persists
+  // Update local storage cache safely
   try {
-    localStorage.removeItem('fm_custom_products');
-    localStorage.removeItem('fm_products');
-    localStorage.removeItem('fm_deleted_product_ids');
+    const existing = mergeAdminProductsWithCatalog([]);
+    const idx = existing.findIndex(p => String(p.id) === strId);
+    let updatedList: Product[];
+    if (idx >= 0) {
+      updatedList = [...existing];
+      updatedList[idx] = { ...updatedList[idx], ...product };
+    } else {
+      updatedList = [product, ...existing];
+    }
+    localStorage.setItem('fm_products', JSON.stringify(updatedList));
 
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { savedId: strId } }));
     window.dispatchEvent(new CustomEvent('fm_products_updated', { detail: product }));
   } catch (err) {
-    console.warn("Failed to dispatch local product update events:", err);
+    console.warn("Failed to update local product storage:", err);
   }
 }
 
 export async function deleteAdminProduct(productId: string): Promise<void> {
   const strId = String(productId);
 
-  // 1. Delete document from Firestore products collection
+  // 1. Mark in deleted_products in local storage so fallback catalog never resurrects it
+  try {
+    const deletedIds = getDeletedProductIds();
+    deletedIds.add(strId);
+    localStorage.setItem('fm_deleted_product_ids', JSON.stringify(Array.from(deletedIds)));
+
+    const existing = mergeAdminProductsWithCatalog([]);
+    const updatedList = existing.filter(p => String(p.id) !== strId);
+    localStorage.setItem('fm_products', JSON.stringify(updatedList));
+  } catch {}
+
+  // 2. Delete document from Firestore products collection
   try {
     await deleteDoc(doc(db, 'products', strId));
   } catch (err) {
     console.warn("Firestore delete product error:", err);
   }
 
-  // 2. Mark in Firestore deleted_products collection so other users/browsers see it deleted instantly
+  // 3. Mark in Firestore deleted_products collection
   try {
     await setDoc(doc(db, 'deleted_products', strId), {
       id: strId,
@@ -354,12 +414,7 @@ export async function deleteAdminProduct(productId: string): Promise<void> {
     console.warn("Firestore deleted_products set error:", err);
   }
 
-  // 3. Purge legacy local caches
   try {
-    localStorage.removeItem('fm_custom_products');
-    localStorage.removeItem('fm_products');
-    localStorage.removeItem('fm_deleted_product_ids');
-
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { deletedId: strId } }));
   } catch {}

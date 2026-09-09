@@ -1,6 +1,7 @@
 import { collection, query, where, getDocs, limit, doc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { Product } from '../types';
+import { PRODUCTS_DATA } from '../data/products';
 
 export const getRelatedProducts = async (category: string, currentProductId: string): Promise<Product[]> => {
   try {
@@ -24,7 +25,10 @@ export const getRelatedProducts = async (category: string, currentProductId: str
     console.warn("Error fetching related products from Firestore, falling back to local products:", error);
   }
 
-  return [];
+  // Resilient fallback to baseline catalog
+  return PRODUCTS_DATA.filter(
+    (p) => p.category === category && String(p.id) !== String(currentProductId)
+  ).slice(0, 30);
 };
 
 const BILINGUAL_SYNONYMS: Record<string, string[]> = {
@@ -65,6 +69,21 @@ export const searchProducts = async (searchTerm: string): Promise<Product[]> => 
     allSnapshot.forEach(docSnap => allProducts.push({ id: docSnap.id, ...docSnap.data() } as Product));
   } catch (error) {
     console.warn("Firestore search error:", error);
+  }
+
+  if (allProducts.length === 0) {
+    try {
+      const cached = localStorage.getItem('fm_products');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          allProducts = parsed;
+        }
+      }
+    } catch {}
+    if (allProducts.length === 0) {
+      allProducts = PRODUCTS_DATA;
+    }
   }
 
   const rawTerm = normalizeText(searchTerm);

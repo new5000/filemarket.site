@@ -273,10 +273,9 @@ function MainApp() {
         setCheckoutProduct(null);
         document.title = 'FileMarket — Premium Digital Assets Marketplace in Bangladesh';
         {
-          const searchParam = route.searchParams?.get('search') || route.searchParams?.get('q');
-          if (searchParam !== null && searchParam !== undefined) {
-            setSearchQuery(searchParam);
-          }
+          const rawSearch = route.searchParams?.get('search') ?? route.searchParams?.get('q') ?? '';
+          const sanitized = rawSearch.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '').trim();
+          setSearchQuery(sanitized);
         }
         break;
 
@@ -394,7 +393,7 @@ function MainApp() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [route, products, navigate]);
 
-  // Category counts calculation
+  // Category counts calculation with safe case-insensitive matching
   const productsCounts = useMemo(() => {
     const list = Array.isArray(products) 
       ? products.filter(p => p && p.status !== 'draft' && p.status !== 'hidden') 
@@ -404,37 +403,66 @@ function MainApp() {
     };
     CATEGORIES.forEach((cat) => {
       if (cat !== 'All Products') {
-        counts[cat] = list.filter((p) => p?.category === cat).length;
+        counts[cat] = list.filter((p) => p?.category?.trim().toLowerCase() === cat.trim().toLowerCase()).length;
       }
     });
     list.forEach((p) => {
-      if (p?.category && counts[p.category] === undefined) {
-        counts[p.category] = list.filter((item) => item?.category === p.category).length;
+      if (p?.category) {
+        const catKey = p.category.trim();
+        if (counts[catKey] === undefined) {
+          counts[catKey] = list.filter((item) => item?.category?.trim().toLowerCase() === catKey.toLowerCase()).length;
+        }
       }
     });
     return counts;
   }, [products]);
 
-  // Filtered products based on category and search query
+  // Filtered products based on category and search query with defensive checks
   const filteredProducts = useMemo(() => {
     const list = Array.isArray(products) 
       ? products.filter(p => p && p.status !== 'draft' && p.status !== 'hidden') 
       : [];
+
+    const normSelectedCat = (selectedCategory || 'All Products').trim().toLowerCase();
+    const isAll = !selectedCategory || normSelectedCat === 'all products' || normSelectedCat === 'all';
+
+    const rawQuery = typeof searchQuery === 'string' ? searchQuery : '';
+    // Strip zero-width unicode spaces often injected by mobile virtual keyboards or link aggregators
+    const lowerQuery = rawQuery.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '').trim().toLowerCase();
+
     return list.filter((product) => {
-      if (!product) return false;
-      const matchesCategory =
-        selectedCategory === 'All Products' || product.category === selectedCategory;
-      const lowerQuery = (searchQuery || '').toLowerCase().trim();
+      if (!product || typeof product !== 'object') return false;
+
+      // 1. Safe category matching (case-insensitive & whitespace trimmed)
+      const prodCat = (product.category || '').trim().toLowerCase();
+      const matchesCategory = isAll || prodCat === normSelectedCat;
+
+      // 2. If no active search query, only category filter applies
       if (!lowerQuery) return matchesCategory;
 
+      // 3. Robust search matching across title, description, category, tags, keywords
+      const title = (product.title || '').toLowerCase();
+      const desc = (product.description || '').toLowerCase();
+      const cat = prodCat;
+
+      const safeTags = Array.isArray(product.tags) 
+        ? product.tags 
+        : (typeof product.tags === 'string' ? (product.tags as string).split(',') : []);
+      const safeKeywords = Array.isArray(product.keywords) 
+        ? product.keywords 
+        : (typeof product.keywords === 'string' ? (product.keywords as string).split(',') : []);
+      const safeSeoKeywords = Array.isArray(product.seoKeywords)
+        ? product.seoKeywords
+        : (typeof product.seoKeywords === 'string' ? (product.seoKeywords as string).split(',') : []);
+
       const matchesSearch =
-        (product.title && product.title.toLowerCase().includes(lowerQuery)) ||
-        (product.description && product.description.toLowerCase().includes(lowerQuery)) ||
-        (product.category && product.category.toLowerCase().includes(lowerQuery)) ||
-        (Array.isArray(product.tags) && product.tags.some(t => typeof t === 'string' && t.toLowerCase().includes(lowerQuery))) ||
-        (Array.isArray(product.keywords) && product.keywords.some(k => typeof k === 'string' && k.toLowerCase().includes(lowerQuery))) ||
-        (typeof product.seoKeywords === 'string' && product.seoKeywords.toLowerCase().includes(lowerQuery)) ||
-        (Array.isArray(product.seoKeywords) && product.seoKeywords.some(s => typeof s === 'string' && s.toLowerCase().includes(lowerQuery)));
+        title.includes(lowerQuery) ||
+        desc.includes(lowerQuery) ||
+        cat.includes(lowerQuery) ||
+        safeTags.some(t => typeof t === 'string' && t.toLowerCase().includes(lowerQuery)) ||
+        safeKeywords.some(k => typeof k === 'string' && k.toLowerCase().includes(lowerQuery)) ||
+        safeSeoKeywords.some(s => typeof s === 'string' && s.toLowerCase().includes(lowerQuery));
+
       return matchesCategory && matchesSearch;
     });
   }, [products, selectedCategory, searchQuery]);
@@ -756,6 +784,10 @@ function MainApp() {
                     savedProducts={savedProducts}
                     onToggleSave={handleToggleSave}
                     isLoading={isProductsLoading || (products.length === 0 && isInitialLoading)}
+                    onResetFilter={() => {
+                      setSelectedCategory('All Products');
+                      setSearchQuery('');
+                    }}
                   />
                 </motion.div>
               )}

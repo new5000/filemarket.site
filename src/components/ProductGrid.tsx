@@ -14,6 +14,7 @@ interface ProductGridProps {
   savedProducts?: string[];
   onToggleSave?: (productId: string) => void;
   isLoading?: boolean;
+  onResetFilter?: () => void;
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = React.memo(({
@@ -26,6 +27,7 @@ export const ProductGrid: React.FC<ProductGridProps> = React.memo(({
   savedProducts,
   onToggleSave,
   isLoading = false,
+  onResetFilter,
 }) => {
   const { globalConfig } = useGlobalSettings();
 
@@ -121,11 +123,30 @@ export const ProductGrid: React.FC<ProductGridProps> = React.memo(({
         <div className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900/60 border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
           <div className="text-4xl">🔍</div>
           <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white">
-            No products found matching your search
+            {searchQuery?.trim()
+              ? `No products found matching "${searchQuery.trim()}"`
+              : selectedCategory && selectedCategory !== 'All Products'
+              ? `No products found in "${selectedCategory}"`
+              : 'No products available at the moment'}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-            Try searching for a different keyword or browse through our categories.
+            {searchQuery?.trim()
+              ? 'Try searching for a different keyword or browse through our categories.'
+              : selectedCategory && selectedCategory !== 'All Products'
+              ? 'Try exploring other categories or view our full catalog.'
+              : 'Our digital services and assets are being refreshed. Check back shortly.'}
           </p>
+          {(searchQuery?.trim() || (selectedCategory && selectedCategory !== 'All Products')) && onResetFilter && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onResetFilter}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm cursor-pointer"
+              >
+                Clear Filter & View All Products
+              </button>
+            </div>
+          )}
         </div>
       )}
 
