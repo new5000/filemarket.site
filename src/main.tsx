@@ -7,15 +7,10 @@ import './index.css';
 if (typeof window !== 'undefined') {
   // Purge any stale demo/dummy product caches from mobile or previous sessions
   try {
-    ['products', 'demo_products', 'mock_products', 'sample_products', 'dummy_products'].forEach((key) => {
+    ['products', 'demo_products', 'mock_products', 'sample_products', 'dummy_products', 'fm_products', 'fm_deleted_product_ids', 'fm_custom_products'].forEach((key) => {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
     });
-
-    const cachedProducts = localStorage.getItem('fm_products');
-    if (cachedProducts && (cachedProducts.includes('Demo Product') || cachedProducts.includes('"Demo Product 1"'))) {
-      localStorage.removeItem('fm_products');
-    }
   } catch {}
 
   if (!(window as any).aclib) {

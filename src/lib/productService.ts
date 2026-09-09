@@ -63,27 +63,17 @@ export const searchProducts = async (searchTerm: string): Promise<Product[]> => 
   try {
     const productsRef = collection(db, 'products');
     
-    // For small catalogs, client-side rich filtering is much more powerful for bilingual & fuzzy matching.
     const qAll = query(productsRef);
     const allSnapshot = await getDocs(qAll);
-    allSnapshot.forEach(docSnap => allProducts.push({ id: docSnap.id, ...docSnap.data() } as Product));
+    allSnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      const title = String(data.title || '');
+      if (!/^demo\s*product\b/i.test(title)) {
+        allProducts.push({ id: docSnap.id, ...data } as Product);
+      }
+    });
   } catch (error) {
     console.warn("Firestore search error:", error);
-  }
-
-  if (allProducts.length === 0) {
-    try {
-      const cached = localStorage.getItem('fm_products');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          allProducts = parsed;
-        }
-      }
-    } catch {}
-    if (allProducts.length === 0) {
-      allProducts = PRODUCTS_DATA;
-    }
   }
 
   const rawTerm = normalizeText(searchTerm);

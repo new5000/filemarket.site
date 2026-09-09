@@ -1,8 +1,9 @@
 import React, { memo, useMemo } from 'react';
 import { Menu, Search, ShoppingBag } from 'lucide-react';
 import { Currency } from '../types';
-import { useBrand } from '../context/BrandContext';
+import { useBrand, DEFAULT_LOGO } from '../context/BrandContext';
 import { useCart } from '../context/CartContext';
+import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import { formatDirectImageUrl } from '../utils/formatImageUrl';
 
 interface HeaderProps {
@@ -23,10 +24,12 @@ export const Header: React.FC<HeaderProps> = memo(({
   onOpenSearch,
 }) => {
   const { logoUrl, brandName } = useBrand();
+  const { globalConfig, generalConfig } = useGlobalSettings();
   const { totalItemsCount, setIsCartDrawerOpen } = useCart();
 
   // Dynamic dual-tone split for any admin-configured brand name
-  const currentBrand = (brandName || 'FileMarket').trim();
+  const currentBrand = (brandName || generalConfig?.siteTitle || globalConfig?.branding?.siteName || 'FileMarket').trim();
+  const activeLogo = logoUrl || generalConfig?.headerLogoUrl || globalConfig?.branding?.logoUrl || DEFAULT_LOGO;
 
   const { brandFirst, brandSecond } = useMemo(() => {
     const name = currentBrand;
@@ -74,19 +77,22 @@ export const Header: React.FC<HeaderProps> = memo(({
             {/* Core Light Beam Pulse */}
             <div className="absolute -inset-1 sm:-inset-1.5 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 blur-sm sm:blur-md opacity-50 animate-radiant-pulse pointer-events-none" />
 
-            {/* Prominently Enlarged Logo Badge */}
-            {logoUrl ? (
-              <img
-                src={formatDirectImageUrl(logoUrl)}
-                alt={currentBrand}
-                className="relative z-10 h-11 w-11 sm:h-16 sm:w-16 md:h-[4.5rem] md:w-[4.5rem] rounded-xl sm:rounded-3xl object-contain shadow-2xl ring-2 ring-emerald-400/60 dark:ring-emerald-400/70 bg-slate-900/80 p-0.5 transition-transform duration-300 group-hover:scale-105 shrink-0"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="relative z-10 h-11 w-11 sm:h-16 sm:w-16 md:h-[4.5rem] md:w-[4.5rem] rounded-xl sm:rounded-3xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-emerald-400 flex items-center justify-center font-black text-slate-950 text-base sm:text-2xl md:text-3xl shadow-2xl shadow-emerald-500/30 ring-2 ring-emerald-400/60 transition-transform duration-300 group-hover:scale-105 shrink-0">
-                {initials}
-              </div>
-            )}
+            {/* Prominently Enlarged Logo Badge with Dynamic DOM Binding & Fallback */}
+            <img
+              id="siteLogo"
+              src={formatDirectImageUrl(activeLogo) || DEFAULT_LOGO}
+              alt={currentBrand}
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (target.src !== DEFAULT_LOGO) {
+                  target.src = DEFAULT_LOGO;
+                }
+              }}
+              className="relative z-10 h-11 w-11 sm:h-16 sm:w-16 md:h-[4.5rem] md:w-[4.5rem] rounded-xl sm:rounded-3xl object-contain shadow-2xl ring-2 ring-emerald-400/60 dark:ring-emerald-400/70 bg-slate-900/80 p-0.5 transition-transform duration-300 group-hover:scale-105 shrink-0"
+              referrerPolicy="no-referrer"
+              crossOrigin="anonymous"
+              loading="eager"
+            />
           </div>
 
           {/* Large Bold Brand Name */}

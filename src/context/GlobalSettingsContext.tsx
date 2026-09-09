@@ -238,6 +238,17 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
       if (docSnap.exists()) {
         const data = docSnap.data() as GeneralConfigData;
         setGeneralConfig(data);
+        const incomingLogo = data.headerLogoUrl || (data as any).logoUrl;
+        if (incomingLogo) {
+          try {
+            localStorage.setItem('fm_logo', incomingLogo);
+            localStorage.setItem('fm_header_logo', incomingLogo);
+          } catch {}
+          if (typeof document !== 'undefined') {
+            const siteLogo = document.getElementById('siteLogo') as HTMLImageElement;
+            if (siteLogo) siteLogo.src = incomingLogo;
+          }
+        }
         try {
           localStorage.setItem('fm_general_config', JSON.stringify(data));
         } catch {}

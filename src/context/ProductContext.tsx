@@ -38,17 +38,6 @@ export async function fetchWithAntiCache(inputUrl: string, init?: RequestInit): 
   });
 }
 
-// Helper to retrieve deleted product IDs from storage
-const getDeletedProductIds = (): Set<string> => {
-  try {
-    const deletedStr = localStorage.getItem('fm_deleted_product_ids') || '[]';
-    const arr: string[] = JSON.parse(deletedStr);
-    return new Set(arr.map(String));
-  } catch {
-    return new Set();
-  }
-};
-
 // Safe normalizer to parse product whether from Firestore doc, JSON, or object
 export const sanitizeAndNormalizeProduct = (data: any, idFallback: string, isAdmin: boolean = false): Product | null => {
   if (!data || typeof data !== 'object') return null;
@@ -91,62 +80,33 @@ export const sanitizeAndNormalizeProduct = (data: any, idFallback: string, isAdm
   } as Product;
 };
 
-// Merges Firestore / custom products with the baseline catalog (excluding deleted items)
-export const mergeProductsWithCatalog = (
-  customOrRemote: Product[], 
-  isAdmin: boolean = false
-): Product[] => {
-  const deletedIds = getDeletedProductIds();
-  const map = new Map<string, Product>();
-
-  // 1. First add baseline PRODUCTS_DATA (excluding any explicitly deleted items)
-  PRODUCTS_DATA.forEach((p) => {
-    const strId = String(p.id);
-    if (!deletedIds.has(strId)) {
-      const normalized = sanitizeAndNormalizeProduct(p, strId, isAdmin);
-      if (normalized) map.set(strId, normalized);
+// Seed initial catalog to Firestore once if database collection is empty
+let isSeedingCatalog = false;
+async function seedCatalogToFirestoreIfEmpty() {
+  if (isSeedingCatalog) return;
+  isSeedingCatalog = true;
+  try {
+    const snap = await getDocs(collection(db, 'products'));
+    if (snap.empty) {
+      console.log('[Firestore] Database products collection empty. Seeding initial catalog to cloud...');
+      const batchPromises = PRODUCTS_DATA.map((p) => {
+        const payload = prepareProductPayloadForFirestore({ ...p, id: String(p.id) });
+        return setDoc(doc(db, 'products', String(p.id)), payload, { merge: true });
+      });
+      await Promise.allSettled(batchPromises);
+      console.log('[Firestore] Initial catalog seeded to cloud database successfully.');
     }
-  });
-
-  // 2. Overlay remote Firestore / custom products on top
-  if (Array.isArray(customOrRemote)) {
-    customOrRemote.forEach((raw) => {
-      if (!raw) return;
-      const strId = String(raw.id || '');
-      if (strId && !deletedIds.has(strId)) {
-        const normalized = sanitizeAndNormalizeProduct(raw, strId, isAdmin);
-        if (normalized) map.set(strId, normalized);
-      }
-    });
+  } catch (err) {
+    console.warn('[Firestore] Auto-seed check error:', err);
+  } finally {
+    isSeedingCatalog = false;
   }
-
-  const merged = Array.from(map.values());
-
-  // Safe cache persistence for offline, network downtime, or quota limits
-  try {
-    localStorage.setItem('fm_products', JSON.stringify(merged));
-  } catch {}
-
-  return merged;
-};
-
-// Initial state provider: tries localStorage cache first, then falls back to PRODUCTS_DATA
-const getInitialProducts = (isAdmin: boolean = false): Product[] => {
-  try {
-    const cached = localStorage.getItem('fm_products');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return mergeProductsWithCatalog(parsed, isAdmin);
-      }
-    }
-  } catch {}
-  return mergeProductsWithCatalog([], isAdmin);
-};
+}
 
 export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(() => getInitialProducts(false));
-  const [loading, setLoading] = useState<boolean>(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     let unsubProducts: (() => void) | null = null;
@@ -159,23 +119,24 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return sanitizeAndNormalizeProduct(docSnap.data(), docSnap.id, isAdmin);
       };
 
-      // 1. Initial direct-from-server query with graceful fallback
+      // 1. Initial direct cloud query
       try {
         const serverSnap = await getDocsFromServer(collection(db, 'products'));
-        if (isMounted && serverSnap && !serverSnap.empty) {
-          const freshList: Product[] = [];
-          serverSnap.docs.forEach((d) => {
-            const p = parseDocData(d);
-            if (p) freshList.push(p);
-          });
-          const merged = mergeProductsWithCatalog(freshList, isAdmin);
-          setProducts(merged);
-          setLoading(false);
+        if (isMounted && serverSnap) {
+          if (!serverSnap.empty) {
+            const freshList: Product[] = [];
+            serverSnap.docs.forEach((d) => {
+              const p = parseDocData(d);
+              if (p) freshList.push(p);
+            });
+            setProducts(freshList);
+            setLoading(false);
+          } else {
+            // Cloud collection is empty: seed cloud catalog
+            await seedCatalogToFirestoreIfEmpty();
+          }
         }
       } catch (serverErr: any) {
-        if (serverErr?.code === 'resource-exhausted' || String(serverErr).includes('Quota')) {
-          console.warn('[ProductContext] Firestore daily read quota exceeded. Serving verified product catalog.');
-        }
         try {
           const fallbackSnap = await getDocs(collection(db, 'products'));
           if (isMounted && fallbackSnap && !fallbackSnap.empty) {
@@ -184,43 +145,41 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
               const p = parseDocData(d);
               if (p) fallbackList.push(p);
             });
-            const merged = mergeProductsWithCatalog(fallbackList, isAdmin);
-            setProducts(merged);
+            setProducts(fallbackList);
             setLoading(false);
           }
-        } catch {
-          // Gracefully retain catalog
-          if (isMounted) setLoading(false);
+        } catch (fbErr) {
+          console.warn('[Firestore] Product fetch error:', fbErr);
         }
       }
 
-      // 2. Real-time active listener with metadata changes
+      // 2. Real-time active listener (instantly syncs any admin create/edit/delete to ALL devices)
       try {
         unsubProducts = onSnapshot(
           collection(db, 'products'),
           { includeMetadataChanges: true },
           (snapshot) => {
             if (!isMounted) return;
+            if (snapshot.empty && isInitialMount.current) {
+              seedCatalogToFirestoreIfEmpty();
+              return;
+            }
+            isInitialMount.current = false;
             const firestoreList: Product[] = [];
             snapshot.docs.forEach((d) => {
               const p = parseDocData(d);
               if (p) firestoreList.push(p);
             });
-            // Merge with catalog so 0 products is NEVER shown if Firestore collection is empty
-            const merged = mergeProductsWithCatalog(firestoreList, isAdmin);
-            setProducts(merged);
+            setProducts(firestoreList);
             setLoading(false);
           },
           (error: any) => {
-            console.warn('[ProductContext] Realtime products listener warning (using resilient fallback):', error);
-            if (isMounted) {
-              setProducts((prev) => (prev.length > 0 ? prev : mergeProductsWithCatalog([], isAdmin)));
-              setLoading(false);
-            }
+            console.warn('[Firestore] Realtime products listener warning:', error);
+            if (isMounted) setLoading(false);
           }
         );
       } catch (listenerErr) {
-        console.warn('[ProductContext] Failed to attach snapshot listener:', listenerErr);
+        console.warn('[Firestore] Failed to attach snapshot listener:', listenerErr);
         if (isMounted) setLoading(false);
       }
     };
@@ -239,106 +198,38 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
 
-  // Listen for local real-time product updates from Admin panel (within same browser window)
-  useEffect(() => {
-    const handleProductUpdated = (e: any) => {
-      const updatedProduct = e.detail as Product;
-      if (updatedProduct && updatedProduct.id) {
-        setProducts((prev) => {
-          const strId = String(updatedProduct.id);
-          const idx = prev.findIndex((p) => String(p.id) === strId);
-          let nextList: Product[];
-          if (idx >= 0) {
-            nextList = [...prev];
-            nextList[idx] = { ...nextList[idx], ...updatedProduct };
-          } else {
-            nextList = [updatedProduct, ...prev];
-          }
-          try {
-            localStorage.setItem('fm_products', JSON.stringify(nextList));
-          } catch {}
-          return nextList;
-        });
-      }
-    };
-    window.addEventListener('fm_products_updated', handleProductUpdated);
-    return () => window.removeEventListener('fm_products_updated', handleProductUpdated);
-  }, []);
-
   const saveProduct = useCallback(async (product: Product): Promise<void> => {
-    const strId = String(product.id);
-    const cleanedProduct = prepareProductPayloadForFirestore(product);
+    const strId = String(product.id || '').trim() || `fm-${Date.now()}`;
+    const cleanedProduct = prepareProductPayloadForFirestore({ ...product, id: strId });
 
-    // 1. Optimistic UI update across all storefront and admin components immediately
+    // 1. Optimistic UI update across all active local components immediately
     setProducts((prev) => {
       const idx = prev.findIndex((p) => String(p.id) === strId);
-      let nextList: Product[];
       if (idx >= 0) {
-        nextList = [...prev];
-        nextList[idx] = { ...nextList[idx], ...product };
-      } else {
-        nextList = [product, ...prev];
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...product, id: strId };
+        return next;
       }
-      try {
-        localStorage.setItem('fm_products', JSON.stringify(nextList));
-      } catch {}
-      return nextList;
+      return [{ ...product, id: strId }, ...prev];
     });
 
-    // Remove from deleted list if it was previously marked deleted
-    try {
-      const deletedIds = getDeletedProductIds();
-      if (deletedIds.has(strId)) {
-        deletedIds.delete(strId);
-        localStorage.setItem('fm_deleted_product_ids', JSON.stringify(Array.from(deletedIds)));
-      }
-    } catch {}
-
-    // 2. Broadcast to local tab listeners
-    try {
-      window.dispatchEvent(new CustomEvent('fm_products_updated', { detail: product }));
-      window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { savedId: strId } }));
-    } catch {}
-
-    // 3. Save directly to Firestore if available
-    try {
-      await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
-    } catch (error) {
-      console.warn('[ProductContext] Firestore setDoc error (saved to local store):', error);
-    }
+    // 2. Direct Cloud Database CRUD (Writes to Firebase Firestore - pushes to all devices via onSnapshot)
+    await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
   }, []);
 
   const deleteProduct = useCallback(async (productId: string): Promise<void> => {
-    const strId = String(productId);
-    
-    // Mark as deleted in local storage so fallback catalog never resurrects it
-    try {
-      const deletedIds = getDeletedProductIds();
-      deletedIds.add(strId);
-      localStorage.setItem('fm_deleted_product_ids', JSON.stringify(Array.from(deletedIds)));
-    } catch {}
+    const strId = String(productId || '').trim();
+    if (!strId) return;
 
-    // Optimistic UI update across all storefront and admin components
-    setProducts((prev) => {
-      const nextList = prev.filter((p) => String(p.id) !== strId);
-      try {
-        localStorage.setItem('fm_products', JSON.stringify(nextList));
-      } catch {}
-      return nextList;
-    });
+    // 1. Optimistic UI update
+    setProducts((prev) => prev.filter((p) => String(p.id) !== strId));
 
-    try {
-      window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { deletedId: strId } }));
-    } catch {}
-
-    try {
-      await deleteDoc(doc(db, 'products', strId));
-    } catch (error) {
-      console.warn('[ProductContext] Firestore deleteDoc error (marked deleted locally):', error);
-    }
+    // 2. Direct Cloud Database CRUD (Deletes document permanently from Firebase Firestore)
+    await deleteDoc(doc(db, 'products', strId));
   }, []);
 
   const refreshProducts = useCallback(async (): Promise<void> => {
+    setLoading(true);
     try {
       const serverSnap = await getDocsFromServer(collection(db, 'products'));
       if (serverSnap && !serverSnap.empty) {
@@ -347,9 +238,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const p = sanitizeAndNormalizeProduct(d.data(), d.id, false);
           if (p) freshList.push(p);
         });
-        const merged = mergeProductsWithCatalog(freshList, false);
-        setProducts(merged);
-        setLoading(false);
+        setProducts(freshList);
       }
     } catch {
       try {
@@ -360,20 +249,19 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
             const p = sanitizeAndNormalizeProduct(d.data(), d.id, false);
             if (p) list.push(p);
           });
-          setProducts(mergeProductsWithCatalog(list, false));
-          setLoading(false);
+          setProducts(list);
         }
-      } catch {
-        // Retain current catalog state
-        setLoading(false);
+      } catch (err) {
+        console.warn('[Firestore] Product refresh failed:', err);
       }
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   // Mobile Lifecycle & Cache Invalidation: Re-validate when mobile browser wakes up or resumes from BFCache
   useEffect(() => {
     const handleMobileResume = (e?: any) => {
-      // If resumed from iOS Safari / Android Chrome BFCache or brought to visible state
       if (!e || e.persisted || document.visibilityState === 'visible') {
         refreshProducts();
       }

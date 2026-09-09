@@ -3,6 +3,7 @@ import { Store, Save, CheckCircle2, AlertTriangle, Image as ImageIcon, Link as L
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { formatDirectImageUrl } from '../../utils/formatImageUrl';
+import { compressImageFile } from '../../lib/storageService';
 
 export const BrandAndSocialSettingsCard = () => {
   // Branding
@@ -54,6 +55,7 @@ export const BrandAndSocialSettingsCard = () => {
           if (data.physicalAddress) setPhysicalAddress(data.physicalAddress);
           if (data.supportEmail) setSupportEmail(data.supportEmail);
           if (data.headerLogoUrl) setHeaderLogoUrl(data.headerLogoUrl);
+          else if (data.logoUrl) setHeaderLogoUrl(data.logoUrl);
           if (data.faviconUrl) setFaviconUrl(data.faviconUrl);
           if (data.founderAvatarUrl) setFounderAvatarUrl(data.founderAvatarUrl);
           if (data.buyButtonText) setDefaultBuyButtonText(data.buyButtonText);
@@ -94,6 +96,16 @@ export const BrandAndSocialSettingsCard = () => {
           if (sData.playStoreEnabled !== undefined) setPlayStoreEnabled(Boolean(sData.playStoreEnabled));
           if (sData.playStoreUrl) setPlayStoreUrl(sData.playStoreUrl);
         }
+
+        // Secondary fallback to system_settings/branding if headerLogoUrl was missing
+        const brandRef = doc(db, 'system_settings', 'branding');
+        const brandSnap = await getDoc(brandRef);
+        if (brandSnap.exists()) {
+          const bData = brandSnap.data();
+          if (bData.headerLogoUrl) setHeaderLogoUrl((prev) => prev || bData.headerLogoUrl);
+          else if (bData.logoUrl) setHeaderLogoUrl((prev) => prev || bData.logoUrl);
+          if (bData.brandName) setSiteTitle((prev) => prev || bData.brandName);
+        }
       } catch (err) {
         console.warn('Error fetching brand settings:', err);
       }
@@ -109,6 +121,10 @@ export const BrandAndSocialSettingsCard = () => {
 
     try {
       const cleanWhatsApp = whatsappNumber.replace(/[^0-9+]/g, '');
+      const cleanLogo = (headerLogoUrl || '').trim();
+      const cleanFavicon = (faviconUrl || '').trim();
+      const cleanFounder = (founderAvatarUrl || '').trim();
+      const cleanBrand = (siteTitle || 'FileMarket').trim();
 
       const supportPayload = {
         whatsappNumber: cleanWhatsApp.trim(),
@@ -121,14 +137,16 @@ export const BrandAndSocialSettingsCard = () => {
 
       const settingsPayload = {
         // Branding & Logos
-        siteTitle: (siteTitle || 'FileMarket').trim(),
+        siteTitle: cleanBrand,
+        brandName: cleanBrand,
         siteTagline: (siteTagline || '').trim(),
         siteDescription: (siteDescription || '').trim(),
         physicalAddress: (physicalAddress || '').trim(),
         supportEmail: (supportEmail || 'filemarket.help@gmail.com').trim(),
-        headerLogoUrl: (headerLogoUrl || '').trim(),
-        faviconUrl: (faviconUrl || '').trim(),
-        founderAvatarUrl: (founderAvatarUrl || '').trim(),
+        headerLogoUrl: cleanLogo,
+        logoUrl: cleanLogo,
+        faviconUrl: cleanFavicon,
+        founderAvatarUrl: cleanFounder,
 
         // Global CTA Button Labels & Styling
         buyButtonText: (defaultBuyButtonText || 'Buy').trim(),
@@ -158,24 +176,55 @@ export const BrandAndSocialSettingsCard = () => {
         updatedAt: new Date().toISOString()
       };
 
-      // 1. Save to primary system settings documents
-      await setDoc(doc(db, 'system_settings', 'general_config'), settingsPayload, { merge: true });
-      await setDoc(doc(db, 'system_settings', 'branding'), settingsPayload, { merge: true });
-      await setDoc(doc(db, 'system_settings', 'support_links'), supportPayload, { merge: true });
-      await setDoc(doc(db, 'system_settings', 'founder_profile'), { founderAvatarUrl: (founderAvatarUrl || '').trim() }, { merge: true });
+      // 1. Save to primary system settings documents in parallel
+      await Promise.allSettled([
+        setDoc(doc(db, 'system_settings', 'general_config'), settingsPayload, { merge: true }),
+        setDoc(doc(db, 'system_settings', 'branding'), {
+          ...settingsPayload,
+          logoUrl: cleanLogo,
+          headerLogoUrl: cleanLogo,
+          brandName: cleanBrand,
+          siteTitle: cleanBrand,
+        }, { merge: true }),
+        setDoc(doc(db, 'settings', 'global_config'), {
+          branding: {
+            siteName: cleanBrand,
+            logoUrl: cleanLogo,
+            darkLogoUrl: cleanLogo,
+            faviconUrl: cleanFavicon,
+            tagline: (siteTagline || '').trim()
+          },
+          updatedAt: new Date().toISOString()
+        }, { merge: true }),
+        setDoc(doc(db, 'system_settings', 'support_links'), supportPayload, { merge: true }),
+        setDoc(doc(db, 'system_settings', 'founder_profile'), { founderAvatarUrl: cleanFounder }, { merge: true })
+      ]);
 
       // 2. Immediately cache locally & broadcast to all store pages
       try {
+        if (cleanLogo) {
+          localStorage.setItem('fm_logo', cleanLogo);
+          localStorage.setItem('fm_header_logo', cleanLogo);
+        }
+        localStorage.setItem('fm_brandName', cleanBrand);
         localStorage.setItem('fm_general_config', JSON.stringify(settingsPayload));
+        
+        window.dispatchEvent(new CustomEvent('fm_logo_updated', { detail: cleanLogo }));
         window.dispatchEvent(new CustomEvent('fm_settings_updated', { detail: settingsPayload }));
+
+        // Instant DOM update for header logo
+        const logoEl = document.getElementById('siteLogo') as HTMLImageElement;
+        if (logoEl && cleanLogo) {
+          logoEl.src = formatDirectImageUrl(cleanLogo) || cleanLogo;
+        }
       } catch {}
 
       // 3. Immediately update DOM Favicon if updated
-      if (faviconUrl) {
+      if (cleanFavicon) {
         const link = (document.querySelector("link[rel~='icon']") as HTMLLinkElement) || document.createElement('link');
         link.type = 'image/x-icon';
         link.rel = 'shortcut icon';
-        link.href = faviconUrl.trim();
+        link.href = cleanFavicon;
         document.getElementsByTagName('head')[0].appendChild(link);
       }
 
@@ -289,18 +338,35 @@ export const BrandAndSocialSettingsCard = () => {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        if (typeof reader.result === 'string') setHeaderLogoUrl(reader.result);
-                      };
-                      reader.readAsDataURL(file);
+                      try {
+                        const compressed = await compressImageFile(file, 512, 0.85);
+                        if (compressed) setHeaderLogoUrl(compressed);
+                      } catch {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          if (typeof reader.result === 'string') setHeaderLogoUrl(reader.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
                     }
                   }}
                 />
               </label>
+              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900/80 border border-emerald-500/40 shrink-0 flex items-center justify-center p-1">
+                <img 
+                  src={formatDirectImageUrl(headerLogoUrl) || 'https://lh3.googleusercontent.com/d/1KkNKkG7Y06W8a_d8Efc7PBMiiQkzxG10'} 
+                  alt="Logo Preview" 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://lh3.googleusercontent.com/d/1KkNKkG7Y06W8a_d8Efc7PBMiiQkzxG10';
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -321,18 +387,35 @@ export const BrandAndSocialSettingsCard = () => {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        if (typeof reader.result === 'string') setFaviconUrl(reader.result);
-                      };
-                      reader.readAsDataURL(file);
+                      try {
+                        const compressed = await compressImageFile(file, 128, 0.85);
+                        if (compressed) setFaviconUrl(compressed);
+                      } catch {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          if (typeof reader.result === 'string') setFaviconUrl(reader.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
                     }
                   }}
                 />
               </label>
+              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900/80 border border-emerald-500/40 shrink-0 flex items-center justify-center p-1.5">
+                <img 
+                  src={formatDirectImageUrl(faviconUrl) || 'https://lh3.googleusercontent.com/d/1KkNKkG7Y06W8a_d8Efc7PBMiiQkzxG10'} 
+                  alt="Favicon" 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://lh3.googleusercontent.com/d/1KkNKkG7Y06W8a_d8Efc7PBMiiQkzxG10';
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -353,14 +436,19 @@ export const BrandAndSocialSettingsCard = () => {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        if (typeof reader.result === 'string') setFounderAvatarUrl(reader.result);
-                      };
-                      reader.readAsDataURL(file);
+                      try {
+                        const compressed = await compressImageFile(file, 512, 0.85);
+                        if (compressed) setFounderAvatarUrl(compressed);
+                      } catch {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          if (typeof reader.result === 'string') setFounderAvatarUrl(reader.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
                     }
                   }}
                 />
@@ -370,6 +458,8 @@ export const BrandAndSocialSettingsCard = () => {
                   src={founderAvatarUrl || 'https://i.ibb.co/vzR0h2M/default-avatar.png'} 
                   alt="Avatar" 
                   className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
                 />
               </div>
             </div>

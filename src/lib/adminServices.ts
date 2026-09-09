@@ -188,54 +188,24 @@ export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
 // --- PRODUCTS MANAGEMENT ---
 
 export function getDeletedProductIds(): Set<string> {
-  try {
-    const deletedStr = localStorage.getItem('fm_deleted_product_ids') || '[]';
-    const arr: string[] = JSON.parse(deletedStr);
-    return new Set(arr.map(String));
-  } catch {
-    return new Set();
-  }
+  return new Set();
 }
 
 export function mergeAdminProductsWithCatalog(customOrRemote: Product[]): Product[] {
-  const deletedIds = getDeletedProductIds();
-  const map = new Map<string, Product>();
-
-  // 1. First add baseline PRODUCTS_DATA (excluding any explicitly deleted items)
-  PRODUCTS_DATA.forEach((p) => {
-    const strId = String(p.id);
-    if (!deletedIds.has(strId)) {
-      map.set(strId, { ...p, id: strId });
-    }
-  });
-
-  // 2. Overlay remote Firestore / custom products on top
-  if (Array.isArray(customOrRemote)) {
-    customOrRemote.forEach((raw) => {
-      if (!raw) return;
-      const strId = String(raw.id || '');
-      if (strId && !deletedIds.has(strId)) {
-        map.set(strId, { ...raw, id: strId });
-      }
-    });
-  }
-
-  const merged = Array.from(map.values());
-  try {
-    localStorage.setItem('fm_products', JSON.stringify(merged));
-  } catch {}
-  return merged;
+  if (!Array.isArray(customOrRemote)) return [];
+  return customOrRemote.filter(p => p && !/^demo\s*product\b/i.test(p.title || ''));
 }
 
 export function subscribeProducts(callback: (products: Product[]) => void): () => void {
   try {
     const unsubProducts = onSnapshot(collection(db, 'products'), { includeMetadataChanges: true }, (snap) => {
-      const firestoreProducts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
-      const merged = mergeAdminProductsWithCatalog(firestoreProducts);
-      callback(merged);
+      const firestoreProducts: Product[] = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Product))
+        .filter(p => !/^demo\s*product\b/i.test(p.title || ''));
+      callback(firestoreProducts);
     }, (err) => {
-      console.warn("Products snapshot error (using catalog fallback):", err);
-      callback(mergeAdminProductsWithCatalog([]));
+      console.warn("Products snapshot error in admin:", err);
+      fetchAllProducts().then(callback);
     });
     return unsubProducts;
   } catch (e) {
@@ -322,101 +292,43 @@ export function subscribeUsers(callback: (users: any[]) => void): () => void {
 
 export async function fetchAllProducts(): Promise<Product[]> {
   try {
-    // Attempt live Firestore server fetch
     const snap = await getDocsFromServer(collection(db, 'products'));
-    const firestoreProducts: Product[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
-    return mergeAdminProductsWithCatalog(firestoreProducts);
+    const firestoreProducts: Product[] = snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as Product))
+      .filter(p => !/^demo\s*product\b/i.test(p.title || ''));
+    return firestoreProducts;
   } catch (error) {
     try {
       const fallbackSnap = await getDocs(collection(db, 'products'));
-      const fallbackProducts: Product[] = fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
-      return mergeAdminProductsWithCatalog(fallbackProducts);
+      const fallbackProducts: Product[] = fallbackSnap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Product))
+        .filter(p => !/^demo\s*product\b/i.test(p.title || ''));
+      return fallbackProducts;
     } catch {
-      console.warn("Could not fetch products from Firestore, serving verified catalog:", error);
-      return mergeAdminProductsWithCatalog([]);
+      console.warn("Could not fetch products from Firestore:", error);
+      return [];
     }
   }
 }
 
 export async function saveAdminProduct(product: Product): Promise<void> {
-  const strId = String(product.id);
-  const cleanedProduct = prepareProductPayloadForFirestore(product);
+  const strId = String(product.id || '').trim() || `fm-${Date.now()}`;
+  const cleanedProduct = prepareProductPayloadForFirestore({ ...product, id: strId });
 
-  // If product was previously marked deleted, un-delete it
-  try {
-    const deletedIds = getDeletedProductIds();
-    if (deletedIds.has(strId)) {
-      deletedIds.delete(strId);
-      localStorage.setItem('fm_deleted_product_ids', JSON.stringify(Array.from(deletedIds)));
-    }
-  } catch {}
-
-  try {
-    await deleteDoc(doc(db, 'deleted_products', strId));
-  } catch {}
-
-  // Save directly to Firestore; onSnapshot pushes changes to all devices immediately
-  try {
-    await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
-  } catch (err) {
-    console.warn("Firestore save product error (persisting locally):", err);
-  }
-
-  // Update local storage cache safely
-  try {
-    const existing = mergeAdminProductsWithCatalog([]);
-    const idx = existing.findIndex(p => String(p.id) === strId);
-    let updatedList: Product[];
-    if (idx >= 0) {
-      updatedList = [...existing];
-      updatedList[idx] = { ...updatedList[idx], ...product };
-    } else {
-      updatedList = [product, ...existing];
-    }
-    localStorage.setItem('fm_products', JSON.stringify(updatedList));
-
-    window.dispatchEvent(new Event('storage'));
-    window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { savedId: strId } }));
-    window.dispatchEvent(new CustomEvent('fm_products_updated', { detail: product }));
-  } catch (err) {
-    console.warn("Failed to update local product storage:", err);
-  }
+  // Save directly to centralized cloud database (Firestore); triggers onSnapshot across all visitors & devices
+  await setDoc(doc(db, 'products', strId), cleanedProduct, { merge: true });
 }
 
 export async function deleteAdminProduct(productId: string): Promise<void> {
-  const strId = String(productId);
+  const strId = String(productId || '').trim();
+  if (!strId) return;
 
-  // 1. Mark in deleted_products in local storage so fallback catalog never resurrects it
+  // Direct Firestore document delete (instantly syncs deletion across all devices via onSnapshot)
+  await deleteDoc(doc(db, 'products', strId));
+
+  // Also remove from deleted_products log if present
   try {
-    const deletedIds = getDeletedProductIds();
-    deletedIds.add(strId);
-    localStorage.setItem('fm_deleted_product_ids', JSON.stringify(Array.from(deletedIds)));
-
-    const existing = mergeAdminProductsWithCatalog([]);
-    const updatedList = existing.filter(p => String(p.id) !== strId);
-    localStorage.setItem('fm_products', JSON.stringify(updatedList));
-  } catch {}
-
-  // 2. Delete document from Firestore products collection
-  try {
-    await deleteDoc(doc(db, 'products', strId));
-  } catch (err) {
-    console.warn("Firestore delete product error:", err);
-  }
-
-  // 3. Mark in Firestore deleted_products collection
-  try {
-    await setDoc(doc(db, 'deleted_products', strId), {
-      id: strId,
-      deletedAt: new Date().toISOString()
-    });
-  } catch (err) {
-    console.warn("Firestore deleted_products set error:", err);
-  }
-
-  try {
-    window.dispatchEvent(new Event('storage'));
-    window.dispatchEvent(new CustomEvent('fm_products_changed', { detail: { deletedId: strId } }));
+    await deleteDoc(doc(db, 'deleted_products', strId));
   } catch {}
 }
 

@@ -17,15 +17,27 @@ export interface BrandContextType {
   updateFounder: (founderAvatarUrl: string, founderName: string, founderBio: string, founderMessageEn?: string, founderMessageBn?: string) => Promise<void>;
 }
 
-const DEFAULT_LOGO = "https://lh3.googleusercontent.com/d/1KkNKkG7Y06W8a_d8Efc7PBMiiQkzxG10";
-const DEFAULT_BRAND_NAME = "FileMarket";
+export const DEFAULT_LOGO = "https://lh3.googleusercontent.com/d/1KkNKkG7Y06W8a_d8Efc7PBMiiQkzxG10";
+export const DEFAULT_BRAND_NAME = "FileMarket";
 export { DEFAULT_FOUNDER_AVATAR, DEFAULT_USER_AVATAR };
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
 
 export const BrandProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO);
-  const [brandName, setBrandName] = useState<string>(DEFAULT_BRAND_NAME);
+  const [logoUrl, setLogoUrl] = useState<string>(() => {
+    try {
+      return localStorage.getItem('fm_logo') || localStorage.getItem('fm_header_logo') || DEFAULT_LOGO;
+    } catch {
+      return DEFAULT_LOGO;
+    }
+  });
+  const [brandName, setBrandName] = useState<string>(() => {
+    try {
+      return localStorage.getItem('fm_brandName') || DEFAULT_BRAND_NAME;
+    } catch {
+      return DEFAULT_BRAND_NAME;
+    }
+  });
   
   const [founderAvatarUrl, setFounderAvatarUrl] = useState<string>(DEFAULT_FOUNDER_AVATAR);
   const [founderName, setFounderName] = useState<string>("Joy Barmon");
@@ -35,57 +47,108 @@ export const BrandProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // Load cached values first
-    try {
-      const cachedLogo = localStorage.getItem('fm_logo');
-      const cachedBrand = localStorage.getItem('fm_brandName');
-      if (cachedLogo) setLogoUrl(cachedLogo);
-      if (cachedBrand) setBrandName(cachedBrand);
-    } catch(e) {}
+  // Sync with DOM element for direct binding
+  const syncDomLogo = (url: string) => {
+    if (typeof document !== 'undefined') {
+      const siteLogo = document.getElementById('siteLogo') as HTMLImageElement;
+      if (siteLogo) {
+        siteLogo.src = url || DEFAULT_LOGO;
+      }
+    }
+  };
 
+  useEffect(() => {
+    // 1. Initial cached values
+    try {
+      const cachedLogo = localStorage.getItem('fm_logo') || localStorage.getItem('fm_header_logo');
+      const cachedBrand = localStorage.getItem('fm_brandName');
+      if (cachedLogo) {
+        setLogoUrl(cachedLogo);
+        syncDomLogo(cachedLogo);
+      }
+      if (cachedBrand) setBrandName(cachedBrand);
+    } catch (e) {}
+
+    // 2. Real-time Firestore snapshot on system_settings/branding
     const unsubBrand = onSnapshot(doc(db, 'system_settings', 'branding'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        let newLogo = logoUrl;
-        let newBrand = brandName;
-        if (data.logoUrl) newLogo = data.logoUrl;
-        if (data.headerLogoUrl) newLogo = data.headerLogoUrl;
-        if (data.brandName) newBrand = data.brandName;
-        if (data.siteTitle) newBrand = data.siteTitle;
-        if (data.siteName) newBrand = data.siteName;
-        if (data.founderAvatarUrl) setFounderAvatarUrl(data.founderAvatarUrl);
+        const incomingLogo = data.headerLogoUrl || data.logoUrl;
+        const incomingBrand = data.brandName || data.siteTitle || data.siteName;
 
-        setLogoUrl(newLogo);
-        setBrandName(newBrand);
-        try {
-          localStorage.setItem('fm_logo', newLogo);
-          localStorage.setItem('fm_brandName', newBrand);
-        } catch(e) {}
+        if (incomingLogo) {
+          setLogoUrl(incomingLogo);
+          syncDomLogo(incomingLogo);
+          try {
+            localStorage.setItem('fm_logo', incomingLogo);
+            localStorage.setItem('fm_header_logo', incomingLogo);
+          } catch {}
+        }
+        if (incomingBrand) {
+          setBrandName(incomingBrand);
+          try {
+            localStorage.setItem('fm_brandName', incomingBrand);
+          } catch {}
+        }
+        if (data.founderAvatarUrl) setFounderAvatarUrl(data.founderAvatarUrl);
       }
       setIsLoading(false);
     }, (err) => {
-      console.warn("BrandContext branding listener warning: using cached defaults due to quota limit.");
+      console.warn("BrandContext branding listener warning:", err);
       setIsLoading(false);
     });
 
+    // 3. Real-time Firestore snapshot on system_settings/general_config
     const unsubGeneral = onSnapshot(doc(db, 'system_settings', 'general_config'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        let newLogo = logoUrl;
-        let newBrand = brandName;
-        if (data.headerLogoUrl) newLogo = data.headerLogoUrl;
-        else if (data.logoUrl) newLogo = data.logoUrl;
-        if (data.siteTitle) newBrand = data.siteTitle;
-        else if (data.brandName) newBrand = data.brandName;
-        else if (data.siteName) newBrand = data.siteName;
-        setLogoUrl(newLogo);
-        setBrandName(newBrand);
+        const incomingLogo = data.headerLogoUrl || data.logoUrl;
+        const incomingBrand = data.siteTitle || data.brandName || data.siteName;
+
+        if (incomingLogo) {
+          setLogoUrl(incomingLogo);
+          syncDomLogo(incomingLogo);
+          try {
+            localStorage.setItem('fm_logo', incomingLogo);
+            localStorage.setItem('fm_header_logo', incomingLogo);
+          } catch {}
+        }
+        if (incomingBrand) {
+          setBrandName(incomingBrand);
+          try {
+            localStorage.setItem('fm_brandName', incomingBrand);
+          } catch {}
+        }
+        if (data.founderAvatarUrl) setFounderAvatarUrl(data.founderAvatarUrl);
       }
     }, (err) => {
-      console.warn("BrandContext general_config listener warning.");
+      console.warn("BrandContext general_config listener warning:", err);
     });
 
+    // 4. Real-time Firestore snapshot on settings/global_config
+    const unsubGlobal = onSnapshot(doc(db, 'settings', 'global_config'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const incomingLogo = data.branding?.logoUrl || data.branding?.headerLogoUrl || data.logoUrl;
+        const incomingBrand = data.branding?.siteName || data.siteTitle;
+
+        if (incomingLogo) {
+          setLogoUrl(incomingLogo);
+          syncDomLogo(incomingLogo);
+          try {
+            localStorage.setItem('fm_logo', incomingLogo);
+            localStorage.setItem('fm_header_logo', incomingLogo);
+          } catch {}
+        }
+        if (incomingBrand) {
+          setBrandName(incomingBrand);
+        }
+      }
+    }, (err) => {
+      console.warn("BrandContext global_config listener warning:", err);
+    });
+
+    // 5. Real-time founder profile listener
     const unsubFounder = onSnapshot(doc(db, 'system_settings', 'founder_profile'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -96,25 +159,88 @@ export const BrandProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (data.founderMessageBn) setFounderMessageBn(data.founderMessageBn);
       }
     }, (err) => {
-      console.warn("Founder listener warning.");
+      console.warn("Founder listener warning:", err);
     });
+
+    // 6. Window event listeners for immediate zero-latency local dispatch
+    const handleLogoUpdatedEvent = (e: any) => {
+      const url = e?.detail;
+      if (url && typeof url === 'string') {
+        setLogoUrl(url);
+        syncDomLogo(url);
+      }
+    };
+    const handleSettingsUpdatedEvent = (e: any) => {
+      const data = e?.detail;
+      if (data) {
+        const url = data.headerLogoUrl || data.logoUrl;
+        if (url) {
+          setLogoUrl(url);
+          syncDomLogo(url);
+        }
+        if (data.siteTitle) setBrandName(data.siteTitle);
+      }
+    };
+
+    window.addEventListener('fm_logo_updated', handleLogoUpdatedEvent);
+    window.addEventListener('fm_settings_updated', handleSettingsUpdatedEvent);
 
     return () => {
       unsubBrand();
       unsubGeneral();
+      unsubGlobal();
       unsubFounder();
+      window.removeEventListener('fm_logo_updated', handleLogoUpdatedEvent);
+      window.removeEventListener('fm_settings_updated', handleSettingsUpdatedEvent);
     };
   }, []);
 
   const updateBrand = useCallback(async (newLogoUrl: string, newBrandName: string) => {
+    const cleanLogo = (newLogoUrl || '').trim() || DEFAULT_LOGO;
+    const cleanBrand = (newBrandName || '').trim() || DEFAULT_BRAND_NAME;
+
+    // Instant local state & DOM reflection
+    setLogoUrl(cleanLogo);
+    setBrandName(cleanBrand);
+    syncDomLogo(cleanLogo);
+
     try {
-      await setDoc(doc(db, 'system_settings', 'branding'), {
-        logoUrl: newLogoUrl,
-        brandName: newBrandName,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
+      localStorage.setItem('fm_logo', cleanLogo);
+      localStorage.setItem('fm_header_logo', cleanLogo);
+      localStorage.setItem('fm_brandName', cleanBrand);
+      window.dispatchEvent(new CustomEvent('fm_logo_updated', { detail: cleanLogo }));
+    } catch {}
+
+    try {
+      // Sync across all 3 central settings documents simultaneously
+      await Promise.allSettled([
+        setDoc(doc(db, 'system_settings', 'branding'), {
+          logoUrl: cleanLogo,
+          headerLogoUrl: cleanLogo,
+          brandName: cleanBrand,
+          siteTitle: cleanBrand,
+          updatedAt: new Date().toISOString()
+        }, { merge: true }),
+
+        setDoc(doc(db, 'system_settings', 'general_config'), {
+          headerLogoUrl: cleanLogo,
+          logoUrl: cleanLogo,
+          siteTitle: cleanBrand,
+          brandName: cleanBrand,
+          updatedAt: new Date().toISOString()
+        }, { merge: true }),
+
+        setDoc(doc(db, 'settings', 'global_config'), {
+          branding: {
+            logoUrl: cleanLogo,
+            darkLogoUrl: cleanLogo,
+            siteName: cleanBrand
+          },
+          updatedAt: new Date().toISOString()
+        }, { merge: true })
+      ]);
     } catch (err) {
-      console.error("Failed to update brand:", err);
+      console.error("Failed to update brand in Firestore:", err);
       throw err;
     }
   }, []);
