@@ -11,6 +11,7 @@ import { AdminPaymentSettingsView } from './AdminPaymentSettingsView';
 import { AdminCouponsView } from './AdminCouponsView';
 import { AdminHeroBannersView } from './AdminHeroBannersView';
 import { AdminAdsView } from './AdminAdsView';
+import { AdminSeoSettingsView } from './AdminSeoSettingsView';
 import { AdminFAQManager } from './AdminFAQManager';
 import { Product } from '../../types';
 import { 
@@ -174,6 +175,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             {activeTab === 'users' && (
               <AdminUsersView
                 users={users}
+                onRefresh={loadAdminData}
+              />
+            )}
+
+            {activeTab === 'seo' && (
+              <AdminSeoSettingsView
                 onRefresh={loadAdminData}
               />
             )}

@@ -163,6 +163,30 @@ export interface GlobalAdsManagerConfig {
   floatingMobileBottom?: GlobalAdSlotConfig;
 }
 
+export interface SeoSettings {
+  googleVerificationToken: string; // Token or full <meta ...> tag
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+  canonicalUrl?: string;
+  author?: string;
+  ogImageUrl?: string;
+  robotsIndex?: boolean;
+  updatedAt?: string;
+}
+
+export const DEFAULT_SEO_SETTINGS: SeoSettings = {
+  googleVerificationToken: '',
+  metaTitle: 'FileMarket | Digital Assets, Video Bundles & Web Services',
+  metaDescription: 'FileMarket (File Market) is your premier digital marketplace for premium digital products, viral reels bundles, verified source codes, scripts, UI kits, and professional web development services.',
+  metaKeywords: 'FileMarket, File Market, Digital Products, Reels Bundles, Web Development, Source Code, Scripts, UI Kits, Video Bundles, Digital Assets',
+  canonicalUrl: 'https://filemarket.site/',
+  author: 'FileMarket Digital Team',
+  ogImageUrl: 'https://filemarket.site/icon-512.png',
+  robotsIndex: true,
+};
+
+
 export interface CartItem {
   id: string;
   product: Product;

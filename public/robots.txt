@@ -1,0 +1,13 @@
+# FileMarket (filemarket.site) robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /order-success
+
+# Crawl-delay for bot politeness
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://filemarket.site/sitemap.xml

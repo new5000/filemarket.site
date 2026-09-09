@@ -37,6 +37,7 @@ export type AdminTab =
   | 'coupons' 
   | 'payments' 
   | 'users' 
+  | 'seo'
   | 'settings';
 
 interface AdminLayoutProps {
@@ -142,11 +143,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       description: 'Customer accounts, roles, ban switches & password reset'
     },
     { 
+      id: 'seo' as AdminTab, 
+      label: '🌐 SEO & Webmaster', 
+      shortLabel: 'SEO Settings',
+      icon: Search,
+      description: 'Google Search Console verification, meta tags & indexing'
+    },
+    { 
       id: 'settings' as AdminTab, 
-      label: 'Store Settings & SEO', 
+      label: 'Store Settings & Hub', 
       shortLabel: 'Settings',
       icon: Settings,
-      description: 'Multi-currency rates, SEO metadata, Maintenance & Custom CSS'
+      description: 'Multi-currency rates, brand identities, maintenance & alerts'
     },
   ];
 

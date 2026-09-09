@@ -1029,3 +1029,13 @@ export function subscribeActiveVisitors(callback: (visitors: any[], count: numbe
   return subscribeActivePresence(callback);
 }
 
+// Re-export SEO & Webmaster service functions
+export { 
+  extractGoogleVerificationToken, 
+  applySeoSettings, 
+  fetchSeoSettings, 
+  saveSeoSettings, 
+  subscribeSeoSettings 
+} from './seoService';
+
+

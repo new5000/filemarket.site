@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Currency, AppLanguage, GlobalConfig, DEFAULT_GLOBAL_CONFIG, HeroBannersData } from '../types';
+import { Currency, AppLanguage, GlobalConfig, DEFAULT_GLOBAL_CONFIG, HeroBannersData, SeoSettings, DEFAULT_SEO_SETTINGS } from '../types';
 import { subscribeGlobalConfig } from '../lib/adminServices';
+import { subscribeSeoSettings, applySeoSettings } from '../lib/seoService';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { translations, getTranslation } from '../utils/i18n';
@@ -83,6 +84,7 @@ interface GlobalSettingsContextType {
   supportLinks: { whatsappNumber: string; telegramLink: string; supportEmail?: string; playStoreEnabled?: boolean; playStoreUrl?: string } | null;
   heroBanners: HeroBannersData | null;
   productGuarantee: ProductGuaranteeData | null;
+  seoSettings: SeoSettings;
 }
 
 const GlobalSettingsContext = createContext<GlobalSettingsContextType | undefined>(undefined);
@@ -155,6 +157,35 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
   const [supportLinks, setSupportLinks] = useState<{ whatsappNumber: string; telegramLink: string } | null>(null);
   const [heroBanners, setHeroBanners] = useState<HeroBannersData | null>(null);
   const [productGuarantee, setProductGuarantee] = useState<ProductGuaranteeData | null>(null);
+  const [seoSettings, setSeoSettings] = useState<SeoSettings>(() => {
+    try {
+      const cached = localStorage.getItem('fm_seo_settings');
+      return cached ? JSON.parse(cached) : DEFAULT_SEO_SETTINGS;
+    } catch {
+      return DEFAULT_SEO_SETTINGS;
+    }
+  });
+
+  // Real-time synchronization of SEO & Google Search Console Verification
+  useEffect(() => {
+    const unsub = subscribeSeoSettings((latestSeo) => {
+      setSeoSettings(latestSeo);
+      applySeoSettings(latestSeo);
+    });
+
+    const handleSeoUpdated = (e: any) => {
+      if (e.detail) {
+        setSeoSettings(e.detail);
+        applySeoSettings(e.detail);
+      }
+    };
+    window.addEventListener('fm_seo_updated', handleSeoUpdated);
+
+    return () => {
+      unsub();
+      window.removeEventListener('fm_seo_updated', handleSeoUpdated);
+    };
+  }, []);
 
   // Listen for local real-time settings broadcast
   useEffect(() => {
@@ -469,6 +500,7 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
         supportLinks,
         heroBanners,
         productGuarantee,
+        seoSettings,
       }}
     >
       {children}

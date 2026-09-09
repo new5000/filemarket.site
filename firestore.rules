@@ -96,6 +96,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Site Settings Collection (SEO & Webmaster Verification)
+    match /site_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Active Presence Collection (Real-time live visitor presence heartbeat)
     match /active_presence/{sessionId} {
       allow read, write: if true;

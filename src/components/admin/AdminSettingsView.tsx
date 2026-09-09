@@ -5,22 +5,24 @@ import {
   Store, 
   ShieldCheck, 
   CheckCircle2, 
-  Sparkles,
-  AlertTriangle,
-  Send,
-  SlidersHorizontal,
-  Layers
+  Sparkles, 
+  AlertTriangle, 
+  Send, 
+  SlidersHorizontal, 
+  Layers,
+  Globe
 } from 'lucide-react';
 import { StoreSettings, fetchStoreSettings, saveStoreSettings } from '../../lib/adminServices';
 import { TelegramSettingsCard } from './TelegramSettingsCard';
 import { BrandAndSocialSettingsCard } from './BrandAndSocialSettingsCard';
+import { SeoSettingsCard } from './SeoSettingsCard';
 import AdminAccessSettings from './AdminAccessSettings';
 
 interface AdminSettingsViewProps {
   onRefresh: () => void;
 }
 
-type SettingsSection = 'all' | 'branding' | 'telegram' | 'access' | 'system';
+type SettingsSection = 'all' | 'seo' | 'branding' | 'telegram' | 'access' | 'system';
 
 export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ onRefresh }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('all');
@@ -54,6 +56,7 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ onRefresh 
 
   const sections: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'All', icon: <Layers className="w-3.5 h-3.5" /> },
+    { id: 'seo', label: 'SEO & Webmaster', icon: <Globe className="w-3.5 h-3.5" /> },
     { id: 'branding', label: 'Branding & CTA', icon: <Store className="w-3.5 h-3.5" /> },
     { id: 'telegram', label: 'Telegram Alerts', icon: <Send className="w-3.5 h-3.5" /> },
     { id: 'access', label: 'Admin Access', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
@@ -99,6 +102,11 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ onRefresh 
       )}
 
       <div className="space-y-4 text-xs">
+        {/* Section: SEO & Webmaster Settings */}
+        {(activeSection === 'all' || activeSection === 'seo') && (
+          <SeoSettingsCard onSaved={onRefresh} />
+        )}
+
         {/* Section: Brand, Identity & Social Links */}
         {(activeSection === 'all' || activeSection === 'branding') && (
           <BrandAndSocialSettingsCard />
