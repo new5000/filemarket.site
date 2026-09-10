@@ -73,8 +73,8 @@ export const ProductGrid: React.FC<ProductGridProps> = React.memo(({
 
       {/* Grid of Products */}
       {isLoading ? (
-        <div className="grid grid-cols-2 min-[340px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6 w-full">
-          {Array.from({ length: 8 }).map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2.5 sm:gap-4 md:gap-6 w-full">
+          {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={`skeleton-${i}`}
               className="bg-white dark:bg-slate-900 rounded-2xl p-2.5 min-[360px]:p-3 sm:p-3.5 border border-slate-100 dark:border-slate-800 animate-pulse flex flex-col justify-between space-y-3"
@@ -102,7 +102,7 @@ export const ProductGrid: React.FC<ProductGridProps> = React.memo(({
           ))}
         </div>
       ) : displayedProducts && displayedProducts.length > 0 ? (
-        <div className="grid grid-cols-2 min-[340px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6 w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2.5 sm:gap-4 md:gap-6 w-full">
           {displayedProducts.map((product) => {
             if (!product || !product.id) return null;
 

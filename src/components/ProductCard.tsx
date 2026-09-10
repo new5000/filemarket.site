@@ -168,7 +168,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
         {/* 1. Thumbnail Media Box (Strict 16:9 Aspect Video with Full Visibility) */}
         <div 
           onClick={handleOpenPreview}
-          className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center mb-2 sm:mb-2.5 cursor-pointer touch-manipulation"
+          className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center mb-2.5 sm:mb-3 cursor-pointer touch-manipulation"
         >
           <img 
             src={coverImg} 

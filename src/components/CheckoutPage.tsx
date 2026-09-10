@@ -1342,7 +1342,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   }`}
                 >
                   <PaymentGatewayLogo gatewayId="bkash" customLogo={paymentSettings.bkash?.customLogo} className="w-7 h-7" />
-                  <span className="text-[11px] font-black text-[#E2136E]">bKash (BD)</span>
+                  <span className="text-[11px] font-black text-[#E2136E]">bKash (Send Money)</span>
                 </button>
               )}
 
@@ -1743,19 +1743,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         <PaymentGatewayLogo gatewayId={currentManualGateway.logoId} customLogo={currentManualGateway.customLogo} className="max-h-full object-contain" />
                       </div>
                       <div>
-                        <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                          {currentManualGateway.name} ({currentManualGateway.accountType})
+                        <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white tracking-tight">
+                          {selectedGateway === 'bkash' 
+                            ? 'bKash Personal (Send Money)' 
+                            : `${currentManualGateway.name} (${currentManualGateway.accountType})`}
                         </h4>
                         <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5 mt-0.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                          সরাসরি ইনস্ট্যান্ট ভেরিফিকেশন এক্টিভ
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                          Direct Instant Verification Active
                         </span>
                       </div>
                     </div>
 
                     {/* Exact Amount Tag (Locked height to prevent layout shift between currencies) */}
                     <div className="text-right min-w-[120px] min-h-[42px] flex flex-col justify-center items-end">
-                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">পাঠানোর পরিমাণ:</span>
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Amount to Send:</span>
                       {selectedGateway === 'binance' ? (
                         <div className="flex items-baseline gap-1">
                           <span className="text-sm sm:text-base font-black text-amber-500 dark:text-amber-400 font-mono">
@@ -1777,8 +1779,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                       {selectedGateway === 'binance' 
-                        ? 'নিচের Binance Pay ID-তে USDT পাঠান:' 
-                        : 'নিচের নম্বরে Send Money / টাকা পাঠান:'}
+                        ? 'Send USDT to the Binance Pay ID below:' 
+                        : `Send Money to this ${selectedGateway === 'bkash' ? 'bKash' : currentManualGateway.name} number:`}
                     </label>
                     <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-emerald-500/40 rounded-xl p-2.5 sm:p-3 shadow-xs">
                       <span className="text-base sm:text-lg font-mono font-black text-slate-900 dark:text-white tracking-wider truncate pr-2">
@@ -1794,7 +1796,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         }`}
                       >
                         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copied ? '✓ কপি হয়েছে!' : '📋 Copy'}</span>
+                        <span>{copied ? 'Copied' : 'Copy'}</span>
                       </button>
                     </div>
                   </div>
@@ -1803,23 +1805,23 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <div className="grid grid-cols-3 gap-2 py-1 text-center">
                     <div className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-2xs">
                       <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block mb-0.5">
-                        {selectedGateway === 'binance' ? '১. USDT পাঠান' : '১. সেন্ড মানি'}
+                        {selectedGateway === 'binance' ? '1. Send USDT' : '1. Send Money'}
                       </span>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">
-                        {selectedGateway === 'binance' ? `ঠিক ${usdtAmount} USDT পাঠান` : `ঠিক ৳${checkoutState.total} পাঠান`}
+                        {selectedGateway === 'binance' ? `Send ${usdtAmount} USDT` : `Send exactly ৳${checkoutState.total}`}
                       </p>
                     </div>
                     <div className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-2xs">
                       <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block mb-0.5">
-                        {selectedGateway === 'binance' ? '২. Order ID কপি' : '২. TrxID কপি'}
+                        {selectedGateway === 'binance' ? '2. Copy Order ID' : '2. Copy TrxID'}
                       </span>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">
-                        {selectedGateway === 'binance' ? 'Binance Pay Order ID কপি করুন' : 'মেসেজের কোডটি কপি করুন'}
+                        {selectedGateway === 'binance' ? 'Copy Binance Pay Order ID' : 'Copy Transaction ID from SMS'}
                       </p>
                     </div>
                     <div className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-2xs">
-                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block mb-0.5">৩. সাবমিট</span>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">নিচে কোড বসিয়ে ভেরিফাই করুন</p>
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block mb-0.5">3. Verify Access</span>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">Enter details below to unlock</p>
                     </div>
                   </div>
 
@@ -1828,13 +1830,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     {/* Sender Mobile Number */}
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                        {selectedGateway === 'binance' ? 'আপনার প্রেরক Binance Pay ID / Email' : 'আপনার প্রেরক মোবাইল নম্বর (Sender Number)'} <span className="text-rose-500">*</span>
+                        Sender Number <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder={selectedGateway === 'binance' ? 'e.g. 123456789 বা Binance Email' : 'যে নম্বর থেকে টাকা পাঠিয়েছেন (01XXXXXXXXX)'}
+                        placeholder="01XXXXXXXXX"
                         className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                         required
                       />
@@ -1843,13 +1845,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     {/* Transaction ID */}
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                        ট্রানজেকশন আইডি (TrxID) <span className="text-rose-500">*</span>
+                        Transaction ID <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
                         value={trxId}
                         onChange={(e) => setTrxId(e.target.value.toUpperCase())}
-                        placeholder="যেমন: BL7A89XC21"
+                        placeholder="TrxID"
                         className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-mono font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all uppercase tracking-wider"
                         required
                       />
@@ -1859,13 +1861,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                          পেমেন্ট স্ক্রিনশট (Payment Screenshot)
+                          Payment Screenshot
                         </label>
-                        <span className="text-[10px] text-slate-400 font-semibold">(ঐচ্ছিক / Optional)</span>
+                        <span className="text-[10px] text-slate-400 font-semibold">(Optional)</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <label className="cursor-pointer px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-colors shrink-0">
-                          <span>📷 ফটো আপলোড</span>
+                          <span>📷 Upload Receipt</span>
                           <input 
                             type="file" 
                             accept="image/*" 
@@ -1874,7 +1876,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                           />
                         </label>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
-                          {screenshotFile ? screenshotFile.name : 'কোনো ফাইল সিলেক্ট করা হয়নি'}
+                          {screenshotFile ? screenshotFile.name : 'No file chosen'}
                         </span>
                       </div>
                     </div>
@@ -1904,19 +1906,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <span>
                     {isAutomatedGateway
                       ? `⚡ Pay ${formatCurrencyAmount(convertedGatewayAmount, gatewayCurrency)} & Instant Access`
-                      : '🚀 পেমেন্ট নিশ্চিত করুন ও ফাইল অ্যাক্সেস নিন'}
+                      : 'Verify & Get Instant Access'}
                   </span>
                 </button>
               )}
 
               {/* 5. TRUST BADGES & WHATSAPP SUPPORT FOOTER */}
               <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-center gap-3 text-[10px] text-slate-500 dark:text-slate-400 font-bold flex-wrap">
-                  <span className="flex items-center gap-1">🔒 100% নিরাপদ লেনদেন</span>
+                <div className="flex items-center justify-center gap-2.5 text-[11px] text-slate-400 dark:text-slate-500 font-medium select-none flex-wrap">
+                  <span className="flex items-center gap-1">🔒 256-Bit Encrypted</span>
                   <span>•</span>
-                  <span className="flex items-center gap-1">⚡ 5-15 মিনিটে অটো ভেরিফাই</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">🛡️ 24h রিফান্ড পলিসি</span>
+                  <span className="flex items-center gap-1">⚡ Instant Delivery</span>
                 </div>
 
                 {/* Direct WhatsApp Quick Help */}
@@ -1926,7 +1926,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   rel="noopener noreferrer"
                   className="w-full py-2.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300/40 dark:border-emerald-700/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
                 >
-                  <span>💬 পেমেন্টে কোনো সমস্যা হচ্ছে? সরাসরি হোয়াটসঅ্যাপে কথা বলুন</span>
+                  <span>💬 Need help with your payment? Chat on WhatsApp</span>
                 </a>
               </div>
             </form>
