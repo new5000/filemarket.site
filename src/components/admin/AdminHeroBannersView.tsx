@@ -142,8 +142,8 @@ export const AdminHeroBannersView: React.FC<AdminHeroBannersViewProps> = ({ prod
 
   const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formSlide.headline.trim()) {
-      alert('Please enter a headline for the banner.');
+    if (!formSlide.imageUrl?.trim()) {
+      alert('Please provide an image URL for the banner.');
       return;
     }
 

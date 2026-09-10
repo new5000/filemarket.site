@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { ChevronLeft, ChevronRight, Zap, Sparkles, ArrowRight } from 'lucide-react';
 import { Currency } from '../types';
 import { useGlobalSettings } from '../context/GlobalSettingsContext';
 import { formatDirectImageUrl } from '../utils/formatImageUrl';
@@ -277,55 +276,16 @@ export const HeroSlider: React.FC<HeroSliderProps> = memo(({
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-transparent pointer-events-none z-10" />
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-transparent pointer-events-none hidden sm:block z-10" />
 
-                {/* 3. CLEAN BOTTOM-ALIGNED CONTENT (HIGH Z-INDEX & ACTIVE POINTER EVENTS) */}
-                <div className="relative z-20 pointer-events-auto p-5 sm:p-7 md:p-8 w-full h-full flex flex-col justify-end items-start">
-                  
-                  {/* Badge */}
-                  {slide.badge && (
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 backdrop-blur-md mb-2 transition-all duration-700 ${
-                      isCurrent ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-                    }`}>
-                      <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
-                      <span>{slide.badge}</span>
-                    </div>
-                  )}
-
-                  {/* Headline */}
-                  <h1 className={`text-lg sm:text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-md transition-all duration-700 delay-100 ${
-                    isCurrent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                  }`}>
-                    {slide.headline}
-                  </h1>
-
-                  {/* Subtitle */}
-                  {slide.subtext && (
+                {/* 3. CLEAN BOTTOM-ALIGNED CONTENT */}
+                {slide.subtext && (
+                  <div className="relative z-20 pointer-events-auto p-5 sm:p-7 md:p-8 w-full h-full flex flex-col justify-end items-start">
                     <p className={`text-xs sm:text-sm text-slate-300 mt-1 line-clamp-1 max-w-xl hidden sm:block transition-all duration-700 delay-200 ${
                       isCurrent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                     }`}>
                       {slide.subtext}
                     </p>
-                  )}
-
-                  {/* CTA Button & Action */}
-                  <div className={`pt-1 transition-all duration-700 delay-300 ${
-                    isCurrent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                  }`}>
-                    <div className="relative group inline-block mt-3">
-                      {/* Radiant Ambient Neon Halo Glow Behind Button */}
-                      <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 rounded-2xl animate-backlight-aura pointer-events-none" />
-
-                      <button
-                        type="button"
-                        onClick={(e) => handleBannerClick(e, slide.actionLink)}
-                        className="relative z-30 inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 rounded-2xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-emerald-950/40 border border-emerald-200/60 active:scale-98 transition-all cursor-pointer pointer-events-auto select-none"
-                      >
-                        <Zap className="w-4 h-4 fill-current text-slate-950" />
-                        <span className="tracking-wide">{slide.actionText || 'Get Instant All-Access'}</span>
-                      </button>
-                    </div>
                   </div>
-
-                </div>
+                )}
 
               </div>
             );
@@ -333,31 +293,6 @@ export const HeroSlider: React.FC<HeroSliderProps> = memo(({
         </div>
 
         {/* 4. SLIDER CONTROLS & PAGINATION */}
-        {/* Navigation arrows on sides: subtle glassmorphism circular buttons visible on hover */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            prevSlide();
-          }}
-          aria-label="Previous Slide"
-          className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-950/60 hover:bg-emerald-500 text-white hover:text-slate-950 backdrop-blur-md border border-white/10 hover:border-emerald-400 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-30 shadow-lg cursor-pointer hover:scale-105 active:scale-90"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            nextSlide();
-          }}
-          aria-label="Next Slide"
-          className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-950/60 hover:bg-emerald-500 text-white hover:text-slate-950 backdrop-blur-md border border-white/10 hover:border-emerald-400 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-30 shadow-lg cursor-pointer hover:scale-105 active:scale-90"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-
         {/* Dots at bottom-center: absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 select-none">
           {banners.map((_, dotIdx) => {
