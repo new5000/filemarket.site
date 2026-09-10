@@ -39,8 +39,36 @@ export function useLivePresence() {
     // 1. Send immediate ping on load
     sendHeartbeat();
 
-    // 2. Pulse every 15 seconds
-    const interval = setInterval(sendHeartbeat, 15000);
+    // 2. Pulse every 20 seconds only when tab is active/visible
+    let interval: NodeJS.Timeout | null = null;
+    const startPulse = () => {
+      if (!interval) {
+        interval = setInterval(() => {
+          if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+            sendHeartbeat();
+          }
+        }, 20000);
+      }
+    };
+    const stopPulse = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    startPulse();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        sendHeartbeat();
+        startPulse();
+      } else {
+        stopPulse();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // 3. Instant remove on tab close/unload
     const handleUnload = () => {
@@ -53,7 +81,8 @@ export function useLivePresence() {
     window.addEventListener('pagehide', handleUnload);
 
     return () => {
-      clearInterval(interval);
+      stopPulse();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleUnload);
       window.removeEventListener('pagehide', handleUnload);
       try {

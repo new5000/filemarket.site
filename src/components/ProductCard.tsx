@@ -17,6 +17,18 @@ interface ProductCardProps {
   onToggleSave?: (productId: string) => void;
 }
 
+// Shared module-level admin state listener so multiple ProductCards do not register redundant listeners
+let cachedAdminState: boolean = false;
+const adminListeners = new Set<(isAdmin: boolean) => void>();
+
+if (typeof window !== 'undefined') {
+  auth.onAuthStateChanged((user) => {
+    const cached = localStorage.getItem('fm_master_admin_email') || 'new144506@gmail.com';
+    cachedAdminState = Boolean(user && user.email?.toLowerCase().trim() === cached.toLowerCase().trim());
+    adminListeners.forEach(cb => cb(cachedAdminState));
+  });
+}
+
 export const ProductCard: React.FC<ProductCardProps> = memo(({
   product,
   currency,
@@ -26,18 +38,15 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const { addToCart } = useCart();
   const { heroBanners, generalConfig } = useGlobalSettings();
 
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    const cached = localStorage.getItem('fm_master_admin_email') || 'new144506@gmail.com';
-    return Boolean(auth.currentUser && auth.currentUser.email?.toLowerCase().trim() === cached.toLowerCase().trim());
-  });
+  const [isAdmin, setIsAdmin] = useState<boolean>(cachedAdminState);
   const [isTogglingHero, setIsTogglingHero] = useState(false);
 
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((user) => {
-      const cached = localStorage.getItem('fm_master_admin_email') || 'new144506@gmail.com';
-      setIsAdmin(Boolean(user && user.email?.toLowerCase().trim() === cached.toLowerCase().trim()));
-    });
-    return () => unsub();
+    const listener = (val: boolean) => setIsAdmin(val);
+    adminListeners.add(listener);
+    return () => {
+      adminListeners.delete(listener);
+    };
   }, []);
 
   const inHero = isProductInHeroBanners(product, heroBanners?.banners || []);

@@ -124,14 +124,10 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenXmlStudi
                   )}
                 </div>
 
-                {/* Bilingual Trust Text (English & Bangla) */}
+                {/* Trust Text */}
                 <div className="space-y-2 max-w-3xl">
                   <p className="text-xs sm:text-sm text-slate-200 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
                     &ldquo;{founderMessageEn}&rdquo;
-                  </p>
-                  
-                  <p className="text-xs sm:text-[13px] text-emerald-300/90 leading-relaxed font-sans bg-emerald-950/20 p-3 rounded-xl border border-emerald-500/20">
-                    &ldquo;{founderMessageBn}&rdquo;
                   </p>
                 </div>
 

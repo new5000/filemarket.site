@@ -34,9 +34,8 @@ import {
   Clock
 } from 'lucide-react';
 import AdminAccessSettings from './AdminAccessSettings';
-import AdminUsersComponent from './AdminUsers';
 
-export { AdminUsersComponent as AdminUsers };
+export { AdminUsersView as AdminUsers };
 
 interface AdminUsersViewProps {
   users?: any[];

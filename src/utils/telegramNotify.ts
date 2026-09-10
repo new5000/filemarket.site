@@ -18,15 +18,12 @@ export interface OrderInfoPayload {
 }
 
 export const notifyAdminOnTelegram = async (orderInfo: OrderInfoPayload): Promise<boolean> => {
-  // Move all tokens to environment variables or dynamic settings - never hardcode secrets in source
   const BOT_TOKEN = (
-    import.meta?.env?.VITE_TELEGRAM_BOT_TOKEN || 
     (typeof window !== 'undefined' ? localStorage.getItem('fm_tg_botToken') : '') || 
     ''
   ).trim();
 
   const CHAT_ID = (
-    import.meta?.env?.VITE_TELEGRAM_CHAT_ID || 
     (typeof window !== 'undefined' ? localStorage.getItem('fm_tg_chatId') : '') || 
     ''
   ).trim();

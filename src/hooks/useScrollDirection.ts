@@ -3,15 +3,17 @@ import { useState, useEffect, useRef } from 'react';
 export function useScrollDirection() {
   const [isVisible, setIsVisible] = useState(true);
   const prevOffset = useRef(0);
+  const ticking = useRef(false);
 
   useEffect(() => {
-    const handleScroll = () => {
+    const updateScroll = () => {
       const currentOffset = window.pageYOffset || document.documentElement.scrollTop;
 
       // Always visible near the top
       if (currentOffset <= 20) {
         setIsVisible(true);
         prevOffset.current = currentOffset;
+        ticking.current = false;
         return;
       }
 
@@ -27,10 +29,21 @@ export function useScrollDirection() {
       }
 
       prevOffset.current = currentOffset;
+      ticking.current = false;
+    };
+
+    const handleScroll = () => {
+      if (!ticking.current) {
+        ticking.current = true;
+        window.requestAnimationFrame(updateScroll);
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      ticking.current = false;
+    };
   }, []);
 
   return isVisible;

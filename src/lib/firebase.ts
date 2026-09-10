@@ -40,16 +40,14 @@ import {
   onSnapshot,
   setLogLevel
 } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
-
 const resolvedFirebaseConfig = {
-  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || firebaseConfig?.apiKey || 'AIzaSyBWHf7mkYIct3YELu3LHwNLGjoA8SU74lg',
-  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig?.authDomain || 'copyright-499917.firebaseapp.com',
-  projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || firebaseConfig?.projectId || 'copyright-499917',
-  storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig?.storageBucket || 'copyright-499917.firebasestorage.app',
-  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig?.messagingSenderId || '778447249303',
-  appId: import.meta.env?.VITE_FIREBASE_APP_ID || firebaseConfig?.appId || '1:778447249303:web:f72d694832ea393f32eed2',
-  firestoreDatabaseId: import.meta.env?.VITE_FIREBASE_DATABASE_ID || (firebaseConfig as any)?.firestoreDatabaseId || 'ai-studio-filemarketdigita-536b1bb8-778f-4401-97c8-8b54455db1a2'
+  apiKey: 'AIzaSyBWHf7mkYIct3YELu3LHwNLGjoA8SU74lg',
+  authDomain: 'copyright-499917.firebaseapp.com',
+  projectId: 'copyright-499917',
+  storageBucket: 'copyright-499917.firebasestorage.app',
+  messagingSenderId: '778447249303',
+  appId: '1:778447249303:web:f72d694832ea393f32eed2',
+  firestoreDatabaseId: 'ai-studio-filemarketdigita-536b1bb8-778f-4401-97c8-8b54455db1a2'
 };
 
 const app = getApps().length > 0 ? getApp() : initializeApp(resolvedFirebaseConfig);
@@ -75,9 +73,9 @@ try {
   firestoreDb = initializeFirestore(app, { 
     localCache: memoryLocalCache(),
     experimentalAutoDetectLongPolling: true 
-  }, firebaseConfig.firestoreDatabaseId);
+  }, resolvedFirebaseConfig.firestoreDatabaseId);
 } catch (error: any) {
-  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  firestoreDb = getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId);
 }
 export const db = firestoreDb;
 export { getDocsFromServer, memoryLocalCache };
@@ -106,21 +104,6 @@ export const handleGoogleLogin = async () => {
   }
 };
 
-// Connection check according to Firebase skill
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error: any) {
-    if (
-      error?.code === 'unavailable' || 
-      error?.message?.includes('offline') || 
-      error?.message?.includes('Could not reach Cloud Firestore backend')
-    ) {
-      console.warn("Firestore status: operating in offline mode / temporary network re-connection.");
-    }
-  }
-}
-testConnection();
 
 export interface PurchasedProductItem {
   id: string;

@@ -11,7 +11,7 @@ interface TelegramSettingsCardProps {
 export default function TelegramSettingsCard({ onSaved }: TelegramSettingsCardProps) {
   // Controlled state for Telegram Bot Token with local cache initialization
   const [botToken, setBotToken] = useState<string>(() => {
-    return localStorage.getItem('fm_tg_botToken') || import.meta?.env?.VITE_TELEGRAM_BOT_TOKEN || '';
+    return localStorage.getItem('fm_tg_botToken') || '';
   });
   const [isEnabled, setIsEnabled] = useState<boolean>(true);
 

@@ -104,60 +104,30 @@ async function seedCatalogToFirestoreIfEmpty() {
 }
 
 export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState<Product[]>(() => {
+    return PRODUCTS_DATA.map(p => sanitizeAndNormalizeProduct(p, p.id, false)).filter(Boolean) as Product[];
+  });
+  const [loading, setLoading] = useState<boolean>(false);
   const isInitialMount = useRef(true);
 
   useEffect(() => {
     let unsubProducts: (() => void) | null = null;
     let isMounted = true;
 
-    const setupListener = async (isAdmin: boolean) => {
-      if (unsubProducts) unsubProducts();
+    const setupListener = (isAdmin: boolean) => {
+      if (unsubProducts) {
+        unsubProducts();
+        unsubProducts = null;
+      }
 
       const parseDocData = (docSnap: any): Product | null => {
         return sanitizeAndNormalizeProduct(docSnap.data(), docSnap.id, isAdmin);
       };
 
-      // 1. Initial direct cloud query
-      try {
-        const serverSnap = await getDocsFromServer(collection(db, 'products'));
-        if (isMounted && serverSnap) {
-          if (!serverSnap.empty) {
-            const freshList: Product[] = [];
-            serverSnap.docs.forEach((d) => {
-              const p = parseDocData(d);
-              if (p) freshList.push(p);
-            });
-            setProducts(freshList);
-            setLoading(false);
-          } else {
-            // Cloud collection is empty: seed cloud catalog
-            await seedCatalogToFirestoreIfEmpty();
-          }
-        }
-      } catch (serverErr: any) {
-        try {
-          const fallbackSnap = await getDocs(collection(db, 'products'));
-          if (isMounted && fallbackSnap && !fallbackSnap.empty) {
-            const fallbackList: Product[] = [];
-            fallbackSnap.docs.forEach((d) => {
-              const p = parseDocData(d);
-              if (p) fallbackList.push(p);
-            });
-            setProducts(fallbackList);
-            setLoading(false);
-          }
-        } catch (fbErr) {
-          console.warn('[Firestore] Product fetch error:', fbErr);
-        }
-      }
-
-      // 2. Real-time active listener (instantly syncs any admin create/edit/delete to ALL devices)
+      // Real-time active listener with Firestore local memory cache fallback
       try {
         unsubProducts = onSnapshot(
           collection(db, 'products'),
-          { includeMetadataChanges: true },
           (snapshot) => {
             if (!isMounted) return;
             if (snapshot.empty && isInitialMount.current) {
@@ -170,7 +140,9 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
               const p = parseDocData(d);
               if (p) firestoreList.push(p);
             });
-            setProducts(firestoreList);
+            if (firestoreList.length > 0) {
+              setProducts(firestoreList);
+            }
             setLoading(false);
           },
           (error: any) => {

@@ -3,8 +3,8 @@ import { db } from './firebase';
 import { TelegramConfig } from '../types';
 
 export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
-  botToken: import.meta?.env?.VITE_TELEGRAM_BOT_TOKEN || '',
-  chatId: import.meta?.env?.VITE_TELEGRAM_CHAT_ID || '',
+  botToken: '',
+  chatId: '',
   enabled: false // Disabled by default until admin enters credentials
 };
 
