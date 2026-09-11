@@ -14,7 +14,6 @@ import {
 } from 'firebase/firestore';
 import { db, auth, addPurchasedProductToUser, PurchasedProductItem, cleanFirestoreData, prepareProductPayloadForFirestore } from './firebase';
 import { Product, GlobalConfig, DEFAULT_GLOBAL_CONFIG } from '../types';
-import { PRODUCTS_DATA } from '../data/products';
 
 export interface AdminOrder {
   id: string;
@@ -431,13 +430,24 @@ export async function saveAdminOrder(order: AdminOrder): Promise<void> {
 export async function updateOrderStatus(
   orderId: string, 
   newStatus: 'Approved' | 'Rejected' | 'Pending',
-  allProducts: Product[]
+  allProducts: Product[],
+  fallbackOrder?: AdminOrder | null
 ): Promise<void> {
   const normStatus = newStatus.toLowerCase(); // 'approved' | 'rejected' | 'pending'
 
-  // 1. Immediately update Firestore order document
+  let targetOrder: AdminOrder | null = fallbackOrder || null;
+  if (!targetOrder) {
+    try {
+      const orders = await fetchAdminOrders();
+      targetOrder = orders.find(o => o.id === orderId) || null;
+    } catch {}
+  }
+
+  // 1. Immediately update Firestore order document via setDoc with merge: true (never throws "No document to update")
   try {
     const updatePayload: any = {
+      ...(targetOrder || {}),
+      id: orderId,
       status: normStatus,
       statusDisplay: newStatus,
       updatedAt: new Date().toISOString()
@@ -453,10 +463,6 @@ export async function updateOrderStatus(
   } catch (err) {
     console.warn("Direct Firestore update failed in updateOrderStatus:", err);
   }
-
-  let targetOrder: AdminOrder | null = null;
-  const orders = await fetchAdminOrders();
-  targetOrder = orders.find(o => o.id === orderId) || null;
 
   if (targetOrder) {
     targetOrder.status = newStatus;

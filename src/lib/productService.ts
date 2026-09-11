@@ -1,7 +1,6 @@
 import { collection, query, where, getDocs, limit, doc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { Product } from '../types';
-import { PRODUCTS_DATA } from '../data/products';
 
 export const getRelatedProducts = async (category: string, currentProductId: string): Promise<Product[]> => {
   try {
@@ -22,13 +21,10 @@ export const getRelatedProducts = async (category: string, currentProductId: str
       return related.slice(0, 30);
     }
   } catch (error) {
-    console.warn("Error fetching related products from Firestore, falling back to local products:", error);
+    console.warn("Error fetching related products from Firestore:", error);
   }
 
-  // Resilient fallback to baseline catalog
-  return PRODUCTS_DATA.filter(
-    (p) => p.category === category && String(p.id) !== String(currentProductId)
-  ).slice(0, 30);
+  return [];
 };
 
 const BILINGUAL_SYNONYMS: Record<string, string[]> = {

@@ -98,7 +98,7 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({
   const handleApprove = async (order: AdminOrder) => {
     setActionLoadingId(order.id);
     try {
-      await updateOrderStatus(order.id, 'Approved', products);
+      await updateOrderStatus(order.id, 'Approved', products, order);
       
       // Storage optimization: Clean up screenshot after verification
       if (order.screenshotUrl) {
@@ -120,7 +120,7 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({
   const handleReject = async (order: AdminOrder) => {
     setActionLoadingId(order.id);
     try {
-      await updateOrderStatus(order.id, 'Rejected', products);
+      await updateOrderStatus(order.id, 'Rejected', products, order);
       
       // Clean up screenshot after rejection
       if (order.screenshotUrl) {

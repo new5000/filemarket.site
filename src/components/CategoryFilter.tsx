@@ -173,7 +173,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = memo(({
                     }`}
                   >
                     <Sparkles className="w-3 h-3" />
-                    <span>{count ?? 'HOT'}</span>
+                    <span>{typeof count === 'number' ? count : (count ?? 0)}</span>
                   </span>
                 ) : count !== undefined ? (
                   <span

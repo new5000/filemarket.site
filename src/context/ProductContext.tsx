@@ -3,7 +3,6 @@ import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs, getDocsFromSer
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth, handleFirestoreError, prepareProductPayloadForFirestore, OperationType } from '../lib/firebase';
 import { Product } from '../types';
-import { PRODUCTS_DATA } from '../data/products';
 
 export interface ProductContextType {
   products: Product[];
@@ -80,34 +79,9 @@ export const sanitizeAndNormalizeProduct = (data: any, idFallback: string, isAdm
   } as Product;
 };
 
-// Seed initial catalog to Firestore once if database collection is empty
-let isSeedingCatalog = false;
-async function seedCatalogToFirestoreIfEmpty() {
-  if (isSeedingCatalog) return;
-  isSeedingCatalog = true;
-  try {
-    const snap = await getDocs(collection(db, 'products'));
-    if (snap.empty) {
-      console.log('[Firestore] Database products collection empty. Seeding initial catalog to cloud...');
-      const batchPromises = PRODUCTS_DATA.map((p) => {
-        const payload = prepareProductPayloadForFirestore({ ...p, id: String(p.id) });
-        return setDoc(doc(db, 'products', String(p.id)), payload, { merge: true });
-      });
-      await Promise.allSettled(batchPromises);
-      console.log('[Firestore] Initial catalog seeded to cloud database successfully.');
-    }
-  } catch (err) {
-    console.warn('[Firestore] Auto-seed check error:', err);
-  } finally {
-    isSeedingCatalog = false;
-  }
-}
-
 export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(() => {
-    return PRODUCTS_DATA.map(p => sanitizeAndNormalizeProduct(p, p.id, false)).filter(Boolean) as Product[];
-  });
-  const [loading, setLoading] = useState<boolean>(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const isInitialMount = useRef(true);
 
   useEffect(() => {
@@ -130,19 +104,13 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
           collection(db, 'products'),
           (snapshot) => {
             if (!isMounted) return;
-            if (snapshot.empty && isInitialMount.current) {
-              seedCatalogToFirestoreIfEmpty();
-              return;
-            }
             isInitialMount.current = false;
             const firestoreList: Product[] = [];
             snapshot.docs.forEach((d) => {
               const p = parseDocData(d);
               if (p) firestoreList.push(p);
             });
-            if (firestoreList.length > 0) {
-              setProducts(firestoreList);
-            }
+            setProducts(firestoreList);
             setLoading(false);
           },
           (error: any) => {
@@ -204,25 +172,25 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setLoading(true);
     try {
       const serverSnap = await getDocsFromServer(collection(db, 'products'));
-      if (serverSnap && !serverSnap.empty) {
-        const freshList: Product[] = [];
+      const freshList: Product[] = [];
+      if (serverSnap) {
         serverSnap.docs.forEach((d) => {
           const p = sanitizeAndNormalizeProduct(d.data(), d.id, false);
           if (p) freshList.push(p);
         });
-        setProducts(freshList);
       }
+      setProducts(freshList);
     } catch {
       try {
         const fallbackSnap = await getDocs(collection(db, 'products'));
-        if (fallbackSnap && !fallbackSnap.empty) {
-          const list: Product[] = [];
+        const list: Product[] = [];
+        if (fallbackSnap) {
           fallbackSnap.docs.forEach((d) => {
             const p = sanitizeAndNormalizeProduct(d.data(), d.id, false);
             if (p) list.push(p);
           });
-          setProducts(list);
         }
+        setProducts(list);
       } catch (err) {
         console.warn('[Firestore] Product refresh failed:', err);
       }

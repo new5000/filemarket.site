@@ -127,7 +127,7 @@ export const ProductGrid: React.FC<ProductGridProps> = React.memo(({
               ? `No products found matching "${searchQuery.trim()}"`
               : selectedCategory && selectedCategory !== 'All Products'
               ? `No products found in "${selectedCategory}"`
-              : 'No products available at the moment'}
+              : 'No products added yet. Check back soon!'}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
             {searchQuery?.trim()

@@ -461,16 +461,27 @@ export default function AdminDashboardOverview({
   const handleApproveOrder = async (order: AdminOrder) => {
     setActionLoadingId(order.id);
     try {
-      // 1. Direct Firestore status update
-      await updateDoc(doc(db, 'orders', order.id), {
+      // Optimistic UI state update
+      setOrders(prev => prev.map(o => o.id === order.id ? { 
+        ...o, 
+        status: 'approved', 
+        statusDisplay: 'Approved', 
+        approvedAt: new Date().toISOString() 
+      } : o));
+
+      // 1. Direct Firestore status update via setDoc with merge: true (never throws "No document to update")
+      const orderPayload: any = {
+        ...order,
         status: 'approved',
         statusDisplay: 'Approved',
         approvedAt: new Date().toISOString(),
-        rejectedAt: null
-      });
+        rejectedAt: null,
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'orders', order.id), orderPayload, { merge: true });
 
       // 2. Grant product access to user in Firestore subcollection via service
-      await updateOrderStatus(order.id, 'Approved', products);
+      await updateOrderStatus(order.id, 'Approved', products, order);
 
       // 3. Auto-Cleanup Storage receipt image
       if (order.screenshotUrl) {
@@ -494,7 +505,7 @@ export default function AdminDashboardOverview({
       console.error("Order approval error:", err);
       // Fallback
       try {
-        await updateOrderStatus(order.id, 'Approved', products);
+        await updateOrderStatus(order.id, 'Approved', products, order);
         if (order.screenshotUrl) {
           await deleteStorageFile(order.screenshotUrl);
         }
@@ -522,14 +533,29 @@ export default function AdminDashboardOverview({
     setActionLoadingId(orderId);
     try {
       const targetOrder = orders.find(o => o.id === orderId);
-      await updateDoc(doc(db, 'orders', orderId), {
+
+      // Optimistic UI state update
+      setOrders(prev => prev.map(o => o.id === orderId ? { 
+        ...o, 
+        status: 'rejected', 
+        statusDisplay: 'Rejected', 
+        rejectedAt: new Date().toISOString() 
+      } : o));
+
+      // 1. Direct Firestore status update via setDoc with merge: true (never throws "No document to update")
+      const rejectPayload: any = {
+        ...(targetOrder || {}),
+        id: orderId,
+        userEmail: customerEmail || targetOrder?.userEmail || '',
         status: 'rejected',
         statusDisplay: 'Rejected',
         rejectedAt: new Date().toISOString(),
-        approvedAt: null
-      });
+        approvedAt: null,
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'orders', orderId), rejectPayload, { merge: true });
 
-      await updateOrderStatus(orderId, 'Rejected', products);
+      await updateOrderStatus(orderId, 'Rejected', products, targetOrder);
 
       if (targetOrder?.screenshotUrl) {
         try {
@@ -550,10 +576,20 @@ export default function AdminDashboardOverview({
       setTimeout(() => setFeedbackMessage(null), 4000);
     } catch (err: any) {
       console.error("Order reject error:", err);
-      setFeedbackMessage({
-        type: 'error',
-        text: `Failed to reject order: ${err.message || 'Error occurred'}`
-      });
+      // Fallback
+      try {
+        const targetOrder = orders.find(o => o.id === orderId);
+        await updateOrderStatus(orderId, 'Rejected', products, targetOrder);
+        setFeedbackMessage({
+          type: 'success',
+          text: `Order #${orderId.slice(0, 6)} marked as rejected.`
+        });
+      } catch (e2) {
+        setFeedbackMessage({
+          type: 'error',
+          text: `Failed to reject order: ${err.message || 'Error occurred'}`
+        });
+      }
       setTimeout(() => setFeedbackMessage(null), 5000);
     } finally {
       setActionLoadingId(null);
